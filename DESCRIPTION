@@ -1,11 +1,29 @@
 Package: dbutils
-Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Utility functions to process and modify BC Stats' population databases
+Version: 0.0.0.9000
+Date: 2021-02-18
+Authors@R: 
+    c(
+    person(given = "Sebastien", family = "Lavoie", role = c("aut")),
+    person(given = "Julie", family = "Hawkins", role = c("aut", "cre"),
+           email = "Julie.Hawkins@gov.bc.ca"),
+    person(given = "Stephanie", family = "Yurchak", role = c("aut"),
+           email = "Stephanie.Yurchak@gov.bc.ca")
+    )
+Description: Includes database utility functions for the BC Stats population section processes.
+License: Apache License (>= 2.0)
 Encoding: UTF-8
 LazyData: true
+RoxygenNote: 7.1.1
+Imports:
+    data.table,
+    dplyr,
+    here,
+    magrittr,
+    openxlsx,
+    readr,
+    rlang,
+    stringr,
+    tidyr,
+    tidyselect,
+    utils

@@ -16,9 +16,7 @@ knitr::opts_chunk$set(
 # dbutils
 
 <!-- badges: start -->
-``` {r}
-use_lifecycle_badge("experimental")
-```
+`r lifecycle::badge("experimental")`
 <!-- badges: end -->
 
 `dbutils` is a package of utility functions for processing and modifying BC Stats' population databases via three main categories:  
@@ -33,7 +31,7 @@ The BC Stats Population section has historically depended on APL; the `dbutils` 
 
 **Database** types include: population, deaths, births. Databases must have 7 columns: Year, Type, TypeID, Age, Male, Female, and Total. Each Year of data must have the same number of occurrences, and Years must be continuous (no year can be missing).
 
-There are several **naming conventions** used with such data, where files are named **_DDDRRTYY_**:  
+There are several naming conventions used with such data, where files are named **_DDDRRTYY_**:  
 
 * **DDD** is the demographic type, such as BIR = Birth, DEA = Death, POP = Population, etc.  
 * **RR** is the region code, such as:
@@ -67,11 +65,21 @@ devtools::install_github("bcgov/dbutils")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+Here is a very simple example which shows you how to use the `rounded` function:
 
 ```{r example}
+
 library(dbutils)
-## basic example code
+
+round(12.5)
+## this gives 12, not necessarily what you might expect; hence, the rounded function
+
+?rounded
+
+dbutils::rounded(12.5)
+
+dbutils::rounded(3.14)
+
 ```
 
 

@@ -25,8 +25,8 @@ have 7 columns: Year, Type, TypeID, Age, Male, Female, and Total. Each
 Year of data must have the same number of occurrences, and Years must be
 continuous (no year can be missing).
 
-There are several **naming conventions** used with such data, where
-files are named ***DDDRRTYY***:
+There are several naming conventions used with such data, where files
+are named ***DDDRRTYY***:
 
   - **DDD** is the demographic type, such as BIR = Birth, DEA = Death,
     POP = Population, etc.  

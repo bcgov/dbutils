@@ -16,7 +16,9 @@ knitr::opts_chunk$set(
 # dbutils
 
 <!-- badges: start -->
+``` {r}
 use_lifecycle_badge("experimental")
+```
 <!-- badges: end -->
 
 `dbutils` is a package of utility functions for processing and modifying BC Stats' population databases via three main categories:  

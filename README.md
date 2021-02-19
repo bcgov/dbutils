@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-use\_lifecycle\_badge(“experimental”) <!-- badges: end -->
+<!-- badges: end -->
 
 `dbutils` is a package of utility functions for processing and modifying
 BC Stats’ population databases via three main categories:
@@ -67,9 +67,22 @@ devtools::install_github("bcgov/dbutils")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+Here is a very simple example which shows you how to use the `rounded`
+function:
 
 ``` r
+
 library(dbutils)
-## basic example code
+
+round(12.5)
+#> [1] 12
+## this gives 12, not necessarily what you might expect; hence, the rounded function
+
+?rounded
+
+dbutils::rounded(12.5)
+#> [1] 13
+
+dbutils::rounded(3.14)
+#> [1] 3
 ```

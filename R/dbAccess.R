@@ -38,6 +38,7 @@
 #' getDBPath(dbType = "estimates", dbRegion = "CA", dbYear = "17") ## "//SFP.IDIR.BCGOV/S152/S52007/PopulationR/Database/Estimates/POPCAE17.csv"
 #' getDBPath(dbType = "births", dbRegion = "RD", dbYear = "18") ## "//SFP.IDIR.BCGOV/S152/S52007/VITAL/Database/Births/BIRRD18.csv"
 #' @family database access helpers
+#' @author Sebastien Lavoie, (formerly, BC Stats)
 #' @export
 getDBPath <- function(dbType, dbRegion, dbYear) {
   if(is.null(dbRegion)) {
@@ -87,6 +88,7 @@ getDBPath <- function(dbType, dbRegion, dbYear) {
 #' will be printed to screen and db_ok will be set to FALSE.
 # @examples
 #' @family database access helpers
+#' @author Sebastien Lavoie, (formerly, BC Stats); Julie Hawkins, BC Stats (remaining)
 #' @export
 dbCheck <- function(db, full_BC = TRUE) {
 
@@ -138,6 +140,7 @@ dbCheck <- function(db, full_BC = TRUE) {
 # dbInfo("POPCAE18.csv")
 # dbInfo(c("estimates", "HA", "18"))
 #' @family database access helpers
+#' @author Sebastien Lavoie, (formerly, BC Stats)
 #' @export
 dbInfo <- function(db_path) {
   if(length(db_path) == 1) {  # DB path is a full path
@@ -210,6 +213,7 @@ dbInfo <- function(db_path) {
 # dbRead("POPCAE18.csv", return_format = "wide", age_filter = c(0, 1, 2, 3, 4, -999))
 # dbRead(c("estimates", "HA", "18"), return_format = "wide", age_filter = c(0, 1, 2, 3, 4, -999))
 #' @family database access helpers
+#' @author Sebastien Lavoie, (formerly, BC Stats)
 #' @export
 dbRead <- function(db_path, return_format = "default", age_filter = NULL) {
   if(length(db_path) == 1) { # User entered full path
@@ -297,6 +301,7 @@ dbRead <- function(db_path, return_format = "default", age_filter = NULL) {
 # dbWrite(data, c("estimates", "CA", "17"), overwrite = FALSE)
 # dbWrite(data, "POPCAE18.csv", overwrite = FALSE)
 #' @family database access helpers
+#' @author Sebastien Lavoie, (formerly, BC Stats)
 #' @export
 dbWrite <- function(db, db_path, overwrite = FALSE) {
 

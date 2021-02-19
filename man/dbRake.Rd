@@ -85,3 +85,6 @@ Raking hekpers include: \code{\link{rounded}}(), \code{\link{read.inputs}}(),
 \code{\link{prep.prorate.col}}(), \code{\link{prorate.col}}(), and raking algorithm functions A, B, C:
 \code{\link{allowNegsnoMargin}}(), \code{\link{noNegsnoMargin}}(), \code{\link{noNegsneedMargin}}()
 }
+\author{
+Julie Hawkins, BC Stats
+}

@@ -28,4 +28,7 @@ Other database access helpers:
 \code{\link{dbWrite}()},
 \code{\link{getDBPath}()}
 }
+\author{
+Sebastien Lavoie, (formerly, BC Stats); Julie Hawkins, BC Stats (remaining)
+}
 \concept{database access helpers}

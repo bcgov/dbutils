@@ -2,8 +2,7 @@
 % Please edit documentation in R/dbRake.R
 \name{rounded}
 \alias{rounded}
-\title{Round a number
-rounds a number to 0}
+\title{Round a number}
 \usage{
 rounded(x)
 }
@@ -15,8 +14,7 @@ Rounded number
 }
 \description{
 For some reason, R rounds to even (i.e., 12.5 rounds to 12), but we want to round to 0
-(i.e., 12.5 rounds to 13). Stephanie Yurchak wrote this function. This is a helper function
-used in dbRake.
+(i.e., 12.5 rounds to 13). This is a helper function used in dbRake.
 }
 \examples{
 rounded(1.2345)  ## 1
@@ -36,5 +34,8 @@ Other raking helpers:
 \code{\link{prorate.row}()},
 \code{\link{read.inputs}()},
 \code{\link{real.to.int}()}
+}
+\author{
+Stephanie Yurchak, BC Stats
 }
 \concept{raking helpers}

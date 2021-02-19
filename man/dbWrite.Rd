@@ -53,4 +53,7 @@ Other database access helpers:
 \code{\link{dbRead}()},
 \code{\link{getDBPath}()}
 }
+\author{
+Sebastien Lavoie, (formerly, BC Stats)
+}
 \concept{database access helpers}

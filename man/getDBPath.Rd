@@ -51,4 +51,7 @@ Other database access helpers:
 \code{\link{dbRead}()},
 \code{\link{dbWrite}()}
 }
+\author{
+Sebastien Lavoie, (formerly, BC Stats)
+}
 \concept{database access helpers}

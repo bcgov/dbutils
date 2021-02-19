@@ -30,11 +30,9 @@ read.inputs <- function(inputFile) {
 
 #### rounded ----
 #' Round a number
-#' rounds a number to 0
 #'
 #' For some reason, R rounds to even (i.e., 12.5 rounds to 12), but we want to round to 0
-#' (i.e., 12.5 rounds to 13). Stephanie Yurchak wrote this function. This is a helper function
-#' used in dbRake.
+#' (i.e., 12.5 rounds to 13). This is a helper function used in dbRake.
 #'
 #' @param x Number to be rounded
 #' @return Rounded number
@@ -43,6 +41,7 @@ read.inputs <- function(inputFile) {
 #' rounded(12.5)    ## 13
 #' @family raking helpers
 #' @seealso The overall raking function: \code{\link{dbRake}}()
+#' @author Stephanie Yurchak, BC Stats
 #' @export
 rounded <- function(x) { trunc(x + 0.5) }
 
@@ -900,6 +899,7 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #### dbRake ----
 #' Rake population database
 #'
+#' @description
 #' Reads a population database file (population, migration) and saves a population database file
 #' with Region values raked for each of Age and Sex. Raking can be run with user-provided region
 #' control totals, or without region control totals. Negative population values may be allowed or
@@ -954,6 +954,7 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #' \code{\link{real.to.int}}(), \code{\link{calc.cols}}(), \code{\link{prorate.row}}(),
 #' \code{\link{prep.prorate.col}}(), \code{\link{prorate.col}}(), and raking algorithm functions A, B, C:
 #' \code{\link{allowNegsnoMargin}}(), \code{\link{noNegsnoMargin}}(), \code{\link{noNegsneedMargin}}()
+#' @author Julie Hawkins, BC Stats
 #' @export
 dbRake <- function(InputData, Ctrl_Pop_Totals, Ctrl_Region_Totals = NULL, Ctrl_AgeGrps_Totals = NULL,
                    VarRegion, VarSex, VarSexTotal, AgeGrpMax = NULL, allowNegatives = FALSE) {

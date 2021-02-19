@@ -88,7 +88,7 @@ getDBPath <- function(dbType, dbRegion, dbYear) {
 #' will be printed to screen and db_ok will be set to FALSE.
 # @examples
 #' @family database access helpers
-#' @author Sebastien Lavoie, (formerly, BC Stats); Julie Hawkins, BC Stats (remaining)
+#' @author Sebastien Lavoie, (formerly, BC Stats); Julie Hawkins, BC Stats
 #' @export
 dbCheck <- function(db, full_BC = TRUE) {
 

@@ -4,26 +4,72 @@
 \alias{dbConvert}
 \title{Convert population database}
 \usage{
-dbConvert(db, conv_table, rake = FALSE, region_total, control_total)
+dbConvert(db, conv_table, rake = TRUE, change_rake_args = FALSE)
 }
 \arguments{
-\item{db}{blah blah}
+\item{db}{Data variable containing the source database to be converted. Expects data to be in
+data.frame with columns: Year, Type, TypeID, Age, Male, Female, Total.}
 
-\item{conv_table}{lorem ipsum}
+\item{conv_table}{Name of conversion table to be read in to provide the proportional
+relationship ("split") between source and destination geographies. Conversion table path is
+hardcoded to ensure consistency across population systems, and will find conversion table in
+"I:/ConversionTables/" folder.}
 
-\item{rake}{blah Default = FALSE.}
+\item{rake}{Whether raking is required (default) or not. Default = TRUE.}
 
-\item{region_total}{lorem ipsum dolor}
-
-\item{control_total}{sit amen}
+\item{change_rake_args}{Logical value whether raking argument defaults need to be changed.
+Default = FALSE. If set to TRUE, user will be asked to set the following arguments:
+\strong{CtrlAgeGrpsTotals} (default = NULL);
+\strong{VarRegion} (otherwise pre-specified as From geography found in name of the conversion
+table, e.g., HA);
+\strong{VarSex} (otherwise pre-specified as "Sex");
+\strong{VarSexTotal} (otherwise pre-specified from data's column names);
+\strong{AgeGrpMax} (default = NULL which would trigger \code{\link{dbRake}} to use age 75 if
+exists; however, dbConvert sets this to the strongly recommended age 75);
+\strong{allowNegatives} (default = FALSE, should only be TRUE for migration data);
+\strong{saveInterimFiles} (default = FALSE);
+\strong{writeRakingLog} (default = FALSE).
+Regardless of `change_rake_args`'s value, \code{\link{dbRake}}'s argument `readFiles` will be
+set to FALSE because the input files will be created during the conversion process.}
 }
 \value{
-dolor sit amen
+Database converted from source to destination geography. If not all allocations were 100,
+(i.e., some splits < 100), then raking was also done.
 }
 \description{
-lorem ipsum
+Converts a population database to another geography using a conversion table and, possibly,
+raking.
+}
+\details{
+Conversion tables should be in the "I:/ConversionTables/" folder so that they can be found, and
+are expected to be .xlsx files with three unnamed columns with the proportional relationship
+(aka, "split"), source and destination geographies.
+
+The conversion process is as follows:
+\enumerate{
+ \item Evaluate the conversion table between Geography A (source)and B (destination) for regions
+ that require no conversion (i.e., regions are converted 1-to-1 from Geography A to B). Remove
+ these regions from the conversion process.
+ \item Sequentially share out the data relating to the region in Geography A using the
+ conversion factor to the respective region(s) in Geography B.
+ \item Aggregate Geography B components that received contributions from multiple regions in
+ Geography A.
+ \item If not all regions are 1-to-1, "split" destination geographies must conform to source
+ totals (aka, "control population totals"), achieved using raking (\code{\link{dbRake}}).
+ If Step (1) removed some 1-to-1 regions, the control totals will be adjusted downward. Destination
+ control totals (aka, "control region totals", or dbRake's "CtrlregionTotals") are set as NULL and
+ will be generated during the raking process from the converted destination data (aka, "InputData").
+ \item Any 1-to-1 regions removed during Step (1) are added back to Geography B (under the
+ Geography B naming convention).
+}
+}
+\examples{
+\dontrun{ dbConvert(db = "POPHAP20", conv_table = "Table-LHA-HSDA-2019.xlsx", rake = FALSE) } ## all 100\%
+\dontrun{ dbConvert(db = "POPHAP20", conv_table = "Table-LHA-SD-2019") }          ## some split
 }
 \seealso{
+Overall package documentation: \code{\link{dbutils}}()
+
 Other conversion helpers: 
 \code{\link{conversionRead}()}
 }

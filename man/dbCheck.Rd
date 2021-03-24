@@ -9,19 +9,45 @@ dbCheck(db, full_BC = TRUE)
 \arguments{
 \item{db}{Data variable containing the database to be checked.}
 
-\item{full_BC}{WHAT THE HECK IS THIS? Default = TRUE.}
+\item{full_BC}{Logical whether the region covers all of BC. Those regions (e.g., CMAs) that
+do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+Default = TRUE.}
 }
 \value{
 db_ok, a logical. If the database passes all checks, db_ok = TRUE. Otherwise, any error(s)
 will be printed to screen and db_ok will be set to FALSE.
 }
 \description{
-Checks a database for specific errors. (1) Database must have 7 columns: Year, Type, TypeID, Age,
-Male, Female, and Total. (2) Each Year of data must have the same number of occurrences.
-(3) Years of data must be continuous (no year can be missing). (4) The Total column must equal
-the sum of the Male and Female columns. (5) THIS FUNCTION IS INCOMPLETE.
+Checks a database for specific errors, at loading (\code{\link{dbRead}}, \code{\link{dbInfo}}),
+after raking (\code{\link{dbRake}}), or before saving (\code{\link{dbWrite}}).
+\enumerate{
+ \item Database must have 7 columns: Year, Type, TypeID, Age, Male, Female, and Total.
+ \item Each Year of data must have the same number of occurrences.
+ \item Years of data must be continuous (no year can be missing).
+ \item The Total column must equal the sum of the Male and Female columns.
+ \item All combinations of region ID, age and sex must be included (even if N = 0).
+ \item For Females: (a) the sum over all age groups must be equal (i.e., single age groups
+ add to total (-999), (b) "ages and over" are sum of corresponding single ages, and, (c) 5-year
+ age groups are sum of corresponding single ages).
+ \item For Males: (a) the sum over all age groups must be equal (i.e., single age groups
+ add to total (-999), (b) "ages and over" are sum of corresponding single ages, and, (c) 5-year
+ age groups are sum of corresponding single ages).
+ \item For Total: (a) the sum over all age groups must be equal (i.e., single age groups
+ add to total (-999), (b) "ages and over" are sum of corresponding single ages, and, (c) 5-year
+ age groups are sum of corresponding single ages).
+ \item For database with full coverage of BC (i.e., full_BC = TRUE), the sum of all regions
+ must equal region 0 (BC) for each age and gender.
+}
+Also, warns user if database has NO older age groups (i.e., negative ages ending in 0 or 5)
+and/or, if database has NO 5-year age groups (i.e., negative ages ending in 4 or 9).
+}
+\examples{
+\dontrun{   dbCheck(db = "I:/VITAL/Database/Births/BIRHA19.csv", full_BC = TRUE)   }
+\dontrun{   dbCheck("I:/PopulationR/Database/Projections/POPHAP19.csv")   }
 }
 \seealso{
+Overall package documentation: \code{\link{dbutils}}()
+
 Other database access helpers: 
 \code{\link{dbInfo}()},
 \code{\link{dbRead}()},
@@ -29,6 +55,6 @@ Other database access helpers:
 \code{\link{getDBPath}()}
 }
 \author{
-Sebastien Lavoie, (formerly, BC Stats); Julie Hawkins, BC Stats (remaining)
+Sebastien Lavoie (formerly, BC Stats); Julie Hawkins, BC Stats
 }
 \concept{database access helpers}

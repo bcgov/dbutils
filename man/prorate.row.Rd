@@ -21,10 +21,10 @@ Reconcile row by row, when using region control totals, while updating initial e
 male/female regional total values if difference is NOT zero, adjust actual data. This function
 will be run iteratively through each row of a dataframe already prepared by running through
 \code{\link{calc.cols}} while the row's difference is not zero. For example, for 1:n_Sex, prorate
-so that region totals sum to region control totals. This is a helper function used in dbRake.
+so that region totals sum to region control totals. This is a helper function used in \code{\link{dbRake}}.
 }
 \seealso{
-the overall raking function: \code{\link{dbRake}}()
+The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
 \code{\link{add.random.fraction.to.cols}()},

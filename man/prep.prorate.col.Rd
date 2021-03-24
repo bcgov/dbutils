@@ -45,7 +45,7 @@ original dataframe, that is now prorated by the adjustment values
 calculates necessary rows (Sum, Ctrl_TOTAL, Diff, adj_value) in preparation for prorating rows
 or raking. First, it calculates the actual sum (of rows), then adds in VarRow control totals,
 then calculates the difference, and finally calculates the adjustment value (difference divided by
-number of groups). This is a helper function used in dbRake, and before calling \code{\link{prorate.col}}.
+number of groups). This is a helper function used in \code{\link{dbRake}}, and before calling \code{\link{prorate.col}}.
 }
 \details{
 This function is first called in dbRake Part 1 to update initial initial estimates of male/female
@@ -57,7 +57,7 @@ younger populations, and finally in Part 3 to update initial single year of age 
 by Sex (after prorating rows before prorating columns).
 }
 \seealso{
-the overall raking function: \code{\link{dbRake}}()
+The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
 \code{\link{add.random.fraction.to.cols}()},

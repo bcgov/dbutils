@@ -14,10 +14,10 @@ a vector of integer numbers that sums to the rounded sum of realNums
 }
 \description{
 Converts real numbers (fractions) to integer numbers while preserving rounded sum.
-This is a helper function used in dbRake.
+This is a helper function used in \code{\link{dbRake}}.
 }
 \seealso{
-the overall raking function: \code{\link{dbRake}}()
+The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
 \code{\link{add.random.fraction.to.cols}()},

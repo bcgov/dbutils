@@ -5,13 +5,225 @@
 \alias{dbutils}
 \title{dbutils: A package of utility functions for processing population data}
 \description{
-The dbutils package provides three categories of important functions:
-database access functions (getDBPath, dbCheck, dbInfo, dbRead, dbWrite),
-conversion functions (conversionRead, dbConvert),
-and raking functions (dbRake, raking helper functions).
+The dbutils package is a set of utility functions for processing and modifying BC Stats'
+population data via three main categories:
+\itemize{
+ \item database \strong{access} functions (\code{\link{getDBPath}}, \code{\link{dbCheck}},
+ \code{\link{dbInfo}}, \code{\link{dbRead}}, \code{\link{dbWrite}})
+ \item \strong{conversion} functions (\code{\link{conversionRead}}, \code{\link{dbConvert}})
+ \item \strong{raking} functions (\code{\link{dbRake}}, raking helper functions)
 }
-\section{dbutils functions}{
+}
+\section{About}{
 
-The dbutils functions are used to process population data.
+The BC Stats Population section has historically depended on APL; the `dbutils` package is a
+conversion of PEOPLE's APL functions to R functions.
+
+There are two sets of databases: estimates and projections. The naming convention in R of the
+database file differs from APL. First, estimates are kept separate from projections. This is
+represented in the naming of the databases as POPRR[E/P]YY, where an "E" is for estimates,
+and "P" is for projections (APL used "O" for projections). Second, APL databases used the year
+of the RUN for the file name (e.g., POPHAO19 was ran in 2019). This can be confusing, so the new
+database files use the years of the most recent estimates. In other words, POPRRE18 contains the
+estimates up to 2018 (July 1st 2018), and POPRRP18 includes projections data with base year 2018
+(July 1st 2018). Projections files also include estimates years.
+
+\strong{Database} types include: population, deaths, births. Databases must have 7 columns:
+Year, Type, TypeID, Age, Male, Female, and Total. Each Year of data must have the same number
+of occurrences, and Years must be continuous (no year can be missing).
+
+There are several naming conventions used with such data, where files are named \strong{DDDRRTYY}:
+\itemize{
+ \item \strong{DDD} is the database type, such as POP = Population, BIR = Birth, DEA = Death.
+ \item \strong{RR} is the region code (see below)
+ \item \strong{T} is the data type (i.e., E = Estimates or P = Projections)
+ \item \strong{YY} is the year (or two-digit PEOPLE version number, indicating which PEOPLE run) you want data for
+}
+
+For historical reasons, population data is saved as POPRREYY (population estimates), POPRRPYY
+(population projections), BIRRRYY (births) or DEARRYY (deaths), where RR is the shorthand for
+the region code, and YY is the last two digits of the year (this was passed over from decades
+of BC Stats PEOPLE development limited to 2-digit codes).
+}
+
+\section{Region codes}{
+
+Two-digit region codes are as follows:
+\itemize{
+ \item RD - Regional District (which is the same data as Census Division (CD))
+ \item DR - Development Region (DR)
+ \item HA - Local Heath Area (LHA)
+ \item HS - Health Service Delivery Area (HSDA)
+ \item HY - Health Authority (HA)
+ \item CH - Community Health Service Area (CHSA)
+ \item CF - Ministry of Children and Family Development (MCFD)
+ \item CA - MCFD Service Delivery Area (MCFD_SDA)
+ \item CL - MCFD Local Service Area (MCFD_LSA)
+ \item SD - School District (SD)
+ \item PS - College Region or Post-Secondary (CR)
+ \item SR - Special Regions (includes CMA/CA, Van Isle and Van Isle excluding CRD. Does not add up to BC total)
+}
+}
+
+\section{Age vectors}{
+
+Age vectors can include combinations of single age years, 5-year age groups (e.g., -4, -9, etc.),
+grouped older populations (e.g., -65, -90, -100, -110, -120, etc.), and Total (i.e., -999).
+Negative ages refer to age groups: those that end in 4 or 9 are five year age groupings ending
+on that age (e.g., -4 refers to those aged 0-4, -9 is those aged 5-9, -14 is those aged 10-14,
+etc.), while those that end in 0 or 5 are "and over" groups beginning with that age
+(e.g., -90 refers to those aged 90 and over, -100 is those aged 100 and over, etc.).
+
+\strong{Population} data is available in single age years up to 109 years old, but is usually
+grouped for 100 and over. (APL did not produce population for ages beyond 100+, so 100:109
+and -110 have 0 population, although they do not have to be in future.) \strong{Death} data is
+available in single age years up to 120 years old. \strong{Birth} data is available only for
+ages 15 to 65 and over. (Age in birth data refers to the mother's age.)
+
+\itemize{
+ \item popall <- c(seq(0, 109), seq(-4, -109, -5), -90, -100, -110, -999)
+ \item pop1yr90 <- c(seq(0, 89), -90, -999)
+ \item pop1yr100 <- c(seq(0, 99), -100, -999)
+ \item pop5yr90 <- c(seq(-4, -89, -5), -90, -999)
+ \item pop5yr100 <- c(seq(-4, -99, -5), -100, -999)
+ \item deaall <- c(seq(0, 119), seq(-4, -119, -5), -90, -120, -999)
+ \item dea1yr120 <- c(seq(0, 119), -120, -999)
+ \item dea1yr110 <- c(seq(0, 109), -110, -999)
+ \item dea1yr90 <- c(seq(0, 89), -90, -999)
+ \item dea5yr120 <- c(seq(-4, -119, -5), -120, -999)
+ \item dea5yr110 <- c(seq(-4, -109, -5), -110, -999)
+ \item dea5yr90 <- c(seq(-4, -89, -5), -90, -999)
+ \item birall <- c(seq(15, 64), seq(-19, -64, -5), -65, -999)
+ \item bir1yr65 <- c(seq(15, 64), -65, -999)
+ \item bir5yr65 <- c(seq(-19, -64, -5), -65, -999)
+}
+}
+
+\section{Database conversion}{
+
+Data is available at varying levels of detail, mostly dependent on some form of geography. For
+example, Census-related data may be accessible for every Dissemination Block, while
+health-related data may only be available at the Local Health Area (LHA) level. As such,
+there exists a need to transfer information from one geography to another. This is achieved
+using a conversion table that converts (demographic) data from Geography A to Geography B.
+
+A conversion table is based on population counts at a very high level of detail. BC Stats uses
+Dissemination Block-level population totals from the most recent Census. Additionally, one would
+need geographic software (like \href{http://desktop.arcgis.com/en/arcmap/}{ArcMap} or
+\href{http://qgis.org/en/site/}{QGIS}) to establish the allocation of Dissemination Blocks to the
+conversion geographies. While the following mentions the underlying linkage between geographies
+being established via Dissemination Blocks, one could technically use any (small) geography to
+establish this relationship.
+
+Essentially, the following is required:
+\enumerate{
+ \item (Total) population at the Dissemination Block-level
+ \item Dissemination Block allocation to Geography A (source)
+ \item Dissemination Block allocation to Geography B (destination)
+}
+Item (1) will provide the fundamental relationship between (2) and (3).
+
+First, the Dissemination Block populations are aggregated by all possible combinations of
+intersections between Geography A and B. This is achievable by creating a table from four columns
+containing (a) the Dissemination Block number, (b) the Dissemination Block population,
+(c) Geography A's alignment and (d) Geography B's alignment with the Dissemination Block. Then,
+percentages are assigned that link Geography A to B.
+
+This approach provides a "match" (or relationship) between Geography A and B that is based on
+the most recent Census population (in year X, say). Use of the conversion table therefore
+relies on the assumption that, if converting information from A to B in year Y != X, the
+conversion relationship holds for year Y. Essentially, this assumes no change in the match
+between A and B from X to Y. This may be valid (or sufficient) in most cases.
+
+The setup requires a "Dissemination Block allocation to Geography A and B". This allocation
+assumes a 100% correspondence. That is, any Dissemination Block that straddles a region in A
+(or B) will have to be completely allocated to one region or the other. Another option may be to
+allocate its population in some proportion to each of the straddled regions. One such proportional
+allocation could be area. For example, assume Dissemination Block X with population 100 straddles
+Region Y and Z such that 40% lies in Region Y and the remainder (60%) lies in Region Z. One could
+allocate 40 persons from X to Y and 60 persons from X to Z.
+
+Once conversion table(s) are available (from above process), the appropriate table can be read
+in with \code{\link{conversionRead}} and applied with \code{\link{dbConvert}} as follows:
+\enumerate{
+ \item Evaluate the conversion table between Geography A (source) and B (destination) for regions
+ that require no conversion (i.e., regions are converted 1-to-1 fromGgeography A to B). Remove
+ these regions from the conversion process.
+ \item Sequentially share out the data relating to the region in Geography A using the
+ conversion factor to the respective region(s) in Geography B.
+ \item Possibly aggregate Geography B components that received contributions from multiple
+ regions in Geography A.
+ \item Depending on the application, there may be a requirement to conform to some pre-specified
+ "control total(s)". These control totals are usually the provincial-level totals and conformance
+ is achieved using raking (\code{\link{dbRake}}). If Step (1) removed some 1-to-1 regions, the
+ control totals will be adjusted downward.
+ \item Any 1-to-1 regions removed during Step (1) are added back to Geography B (under the
+ Geography B naming convention).
+}
+
+\strong{An example:}
+
+Consider the following conversion table which represents the demographic relationship between
+Geography A and B:
+\tabular{llr}{
+   Geography A \tab Geography B \tab Percentage \cr
+   A-1 \tab B-1 \tab  21.96943503\% \cr
+   A-1 \tab B-2 \tab  45.39105179\% \cr
+   A-1 \tab B-3 \tab  32.63951317\% \cr
+   A-2 \tab B-3 \tab  60.84714549\% \cr
+   A-2 \tab B-4 \tab  39.15285451\% \cr
+   A-3 \tab B-5 \tab 100.00000000\% \cr
+   A-4 \tab B-6 \tab  49.22285940\% \cr
+   A-4 \tab B-7 \tab  50.77714060\% \cr
+}
+
+Also, assume we have some statistic (population, say) for Geography A for a number of years:
+\tabular{lrrrrr}{
+   Geography A \tab Year 1 \tab Year 2 \tab Year 3 \tab Year 4 \tab Year 5 \cr
+   A-1         \tab 14,461 \tab 14,606 \tab 14,752 \tab 14,900 \tab 15,049 \cr
+   A-2         \tab 16,290 \tab 16,534 \tab 16,782 \tab 17,034 \tab 17,290 \cr
+   A-3         \tab    489 \tab    504 \tab    519 \tab    535 \tab    551 \cr
+   A-4         \tab 25,285 \tab 26,119 \tab 26,981 \tab 27,871 \tab 28,791 \cr
+   \strong{Total}   \tab 56,525 \tab 57,763 \tab 59,034 \tab 60,340 \tab 61,681 \cr
+}
+
+In the conversion table above, region A-3 is converted 100% into region B-5. As such, there's
+technically no conversion necessary, so we remove A-3 from the conversion process. One could
+perform the following conversion for \strong{Year 1} in the above data:
+\tabular{llrr}{
+   Geography A \tab Geography B \tab Percentage \tab Population \cr
+   A-1 \tab         \tab               \tab **14,461** \cr
+       \tab B-1     \tab  21.96943503\% \tab    3,177   \cr
+       \tab B-2     \tab  45.39105179\% \tab    6,564   \cr
+       \tab B-3     \tab  32.63951317\% \tab    4,720   \cr
+   A-2 \tab         \tab               \tab **16,290** \cr
+       \tab B-3     \tab  60.84714549\% \tab    9,912   \cr
+       \tab B-4     \tab  39.15285451\% \tab    6,378   \cr
+   A-4 \tab         \tab               \tab **25,285** \cr
+       \tab B-6     \tab  49.2228594\%  \tab   12,446   \cr
+       \tab B-7     \tab  50.7771406\%  \tab   12,839   \cr
+       \tab \strong{Total} \tab             \tab **56,036** \cr
+}
+
+Aggregating the breakout for region B-3 (that is, split across A-1 and A-2) would yield the
+final conversion for all years:
+\tabular{lrrrrr}{
+   Geography B \tab Year 1 \tab Year 2 \tab Year 3 \tab Year 4 \tab Year 5 \cr
+   B-1         \tab  3,177 \tab  3,209 \tab  3,241 \tab  3,273 \tab  3,306 \cr
+   B-2         \tab  6,564 \tab  6,630 \tab  6,696 \tab  6,763 \tab  6,831 \cr
+   B-3         \tab 14,632 \tab *14,827* \tab 15,026 \tab *15,229* \tab 15,432 \cr
+   B-4         \tab  6,378 \tab  6,474 \tab  6,571 \tab  6,669 \tab  6,770 \cr
+   *B-5*       \tab  *489* \tab  *504* \tab  *519* \tab  *535* \tab  *551* \cr
+   B-6         \tab 12,446 \tab 12,857 \tab 13,281 \tab 13,719 \tab 14,172 \cr
+   B-7         \tab 12,839 \tab 13,262 \tab 13,700 \tab 14,152 \tab 14,619 \cr
+   \strong{Total}   \tab 56,525 \tab 57,763 \tab 59,034 \tab 60,340 \tab 61,681 \cr
+}
+
+In the above example, the actual value for the statistic has been truncated to zero decimals and
+made to sum to the "control totals" (assigning any remainder to the *largest value*; region B-3
+in years 2 and 4) identified by \strong{Total}. This is an elementary method for making totals conform
+to some controls. When dealing with higher-dimensional data (e.g., including age and gender
+detail with the above), raking is the suggested means for conformance. B-5 was added back as-is
+from A-3 after making sure that the aggregated sub-provincial remainders matched the control totals.
 }
 

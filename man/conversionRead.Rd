@@ -7,15 +7,49 @@
 conversionRead(conv_path)
 }
 \arguments{
-\item{conv_path}{blah blah}
+\item{conv_path}{The full path to the conversion table Excel file.}
 }
 \value{
-blah blah
+A data.frame object with three variables: split, source, and destination.
 }
 \description{
-lorem ipsum
+Read a conversion table so it can be examined. Conversion tables represent the proportional
+relationship ("split") between source and destination geographies, and are named as \strong{FROM_TO_YEAR}.
+For example, the table that converts from LHA to SD based on 2019 matches is called LHA_SD_2019.
+(Historical APL naming was similar, but used dashes in place of underscores, and included the word
+TABLE before the year (e.g., LHA-SD-TABLE2019).)
+
+Conversion tables should be in the "I:/ConversionTables/" folder, to ensure consistency across
+population systems, and because \code{\link{dbConvert}} uses that hardcoded path to find the
+required conversion table. Conversion tables are expected to be .xlsx files with three unnamed
+columns with the proportional relationship (aka, "split"), source and destination geographies.
+}
+\details{
+Data is available at varying levels of detail, mostly dependent on some form of geography. For
+example, Census-related data may be accessible for every Dissemination Block, while
+health-related data may only be available at the Local Health Area (LHA) level. As such,
+there exists a need to transfer, or convert, information from one geography to another. This is
+achieved using a conversion table that converts data from Geography A (source) to B (destination).
+
+A conversion table is based on population counts at a very high level of detail. BC Stats uses
+Dissemination Block-level population totals from the most recent Census. Additionally, one would
+need geographic software (like \href{http://desktop.arcgis.com/en/arcmap/}{ArcMap} or
+\href{http://qgis.org/en/site/}{QGIS}) to establish the allocation of Dissemination Blocks to the
+conversion geographies. While the following mentions the underlying linkage between geographies
+being established via Dissemination Blocks, one could technically use any (small) geography to
+establish this relationship.
+
+Essentially, the (total) population at the Dissemination Block-level is required to provide the
+fundamental relationship between the allocation of Geography A (source) and the allocation to
+Geography B (destination).
+}
+\examples{
+\dontrun{  conversionRead(conv_path = "I:/ConversionTables/Table-LHA-HSDA-2019.xlsx")  }
+\dontrun{  conversionRead(conv_path = "I:/ConversionTables/Table-LHA-SD-2019.xlsx")  }
 }
 \seealso{
+Overall package documentation: \code{\link{dbutils}}()
+
 Other conversion helpers: 
 \code{\link{dbConvert}()}
 }

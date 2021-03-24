@@ -8,7 +8,7 @@ dbInfo(db_path)
 }
 \arguments{
 \item{db_path}{Either vector of database type ("estimates", "projections", "births", "deaths"),
-region code and two-character year OR full path to datbase csv file.}
+region code and two-character year OR full path to database csv file.}
 }
 \value{
 List structure with unique values for Year, Type, TypeID, Region, Age and Sex.
@@ -18,10 +18,27 @@ Reads a population database file (population, births, deaths) and returns list w
 values for each of Year, Type, TypeID, Age and Sex. Database path can be either a full path
 to a csv database file with the correct columns, or a vector including the type, region and
 year of database to be used through \code{\link{getDBPath}}. For example,
-db_path = c("estimates", "HA", "18") would return info for the July 1st 2018 population
+db_path = c("estimates", "HA", "19") would return info for the July 1st 2019 population
 estimates database for Local Health Areas.
+
+Note that \code{\link{dbCheck}} is run before pulling info. User will be warned if any database
+checks fail.
+}
+\details{
+The complete list of region IDs and ages for each type of database (population, deaths, births)
+can be found in \code{\link{dbutils}}. For historical reasons, population data is saved as
+POPRREYY (population estimates), POPRRPYY (population projections), BIRRRYY (births) or
+DEARRYY (deaths), where RR is the shorthand for the region code, and YY is the last two digits
+of the year.
+}
+\examples{
+\dontrun{  dbInfo("I://PopulationR/Database/Estimates/POPHAE19.csv")  }
+dbInfo(c("estimates", "HA", "19"))
+dbInfo(c("projections", "RD", "19"))
 }
 \seealso{
+Overall package documentation: \code{\link{dbutils}}()
+
 Other database access helpers: 
 \code{\link{dbCheck}()},
 \code{\link{dbRead}()},
@@ -29,6 +46,6 @@ Other database access helpers:
 \code{\link{getDBPath}()}
 }
 \author{
-Sebastien Lavoie, (formerly, BC Stats)
+Sebastien Lavoie (formerly, BC Stats)
 }
 \concept{database access helpers}

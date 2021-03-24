@@ -11,10 +11,10 @@ read.inputs(inputFile)
 }
 \description{
 reads in xlsx or csv input files, detecting those file types from file extension, from inputs
-folder. This is a helper function used in dbRake.
+folder. This is a helper function used in \code{\link{dbRake}}.
 }
 \seealso{
-the overall raking function: \code{\link{dbRake}}()
+The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
 \code{\link{add.random.fraction.to.cols}()},

@@ -14,7 +14,7 @@ Rounded number
 }
 \description{
 For some reason, R rounds to even (i.e., 12.5 rounds to 12), but we want to round to 0
-(i.e., 12.5 rounds to 13). This is a helper function used in dbRake.
+(i.e., 12.5 rounds to 13). This is a helper function used in \code{\link{dbRake}}.
 }
 \examples{
 rounded(1.2345)  ## 1

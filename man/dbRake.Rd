@@ -6,14 +6,17 @@
 \usage{
 dbRake(
   InputData,
-  Ctrl_Pop_Totals,
-  Ctrl_Region_Totals = NULL,
-  Ctrl_AgeGrps_Totals = NULL,
+  CtrlPopTotals,
+  CtrlRegionTotals = NULL,
+  CtrlAgeGrpsTotals = NULL,
   VarRegion,
   VarSex,
   VarSexTotal,
   AgeGrpMax = NULL,
-  allowNegatives = FALSE
+  allowNegatives = FALSE,
+  saveInterimFiles = FALSE,
+  writeRakingLog = FALSE,
+  readFiles = FALSE
 )
 }
 \arguments{
@@ -21,19 +24,19 @@ dbRake(
 This file is assumed to have Region (e.g., LHA) by Sex (e.g., 1, 2, 3) as rows, and
 Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.}
 
-\item{Ctrl_Pop_Totals}{Name of .xlsx or .csv file that contains overall control totals
+\item{CtrlPopTotals}{Name of .xlsx or .csv file that contains overall control totals
 (e.g., "BC AS TOTALS.xlsx"). This file is assumed to have Sex (e.g., 1, 2, 3) as rows and
 Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.
 This file typically has dimensions of 3 (obs) by 103 variables.}
 
-\item{Ctrl_Region_Totals}{Name of .xlsx or .csv file that contains overall control totals
+\item{CtrlRegionTotals}{Name of .xlsx or .csv file that contains overall control totals
 (e.g., "LHA TOTALS.xlsx"). Default = NULL. This file is assumed to have Region (e.g., 89 LHAs)
 as the first column and TOTAL (population counts) as the second column; this file is not broken out
 by Sex or Age. This file typically has dimensions of n (obs) by 2 variables, where "n" is the
 number of individual regions (e.g., 89 for LHA). If no name is provided (i.e., NULL), then region
 control totals are not used. Instead, the InputData will be used to generate "control" totals.}
 
-\item{Ctrl_AgeGrps_Totals}{Name of .xlsx or .csv file that contains initial 5 year age group totals.
+\item{CtrlAgeGrpsTotals}{Name of .xlsx or .csv file that contains initial 5 year age group totals.
 Default = NULL. In virtually all cases, this variable will be NULL. In these cases, the InputData
 will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 10-14, etc).}
 
@@ -43,7 +46,7 @@ will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 1
 
 \item{VarSexTotal}{Value that corresponds to Total (e.g., 3, when 1 and 2 are Male and Female)}
 
-\item{AgeGrpMax}{Age of the older poppulation that will be prorated and raked separately from
+\item{AgeGrpMax}{Age of the older population that will be prorated and raked separately from
 other 5 year age groups. AgeGrpMax will include all ages, including itself, through the remainder
 of the population. Default = NULL. If AgeGrpMax is not set, the function will use 75 and up
 (not necessarily the oldest age; that is, the oldest age is usually 100, meaning 100 and up).
@@ -52,35 +55,65 @@ distortion in older populations is minimized.}
 
 \item{allowNegatives}{Logical value for whether or not negative population values are allowed.
 Default = FALSE. Only migration data should be allowed to have negative values.}
+
+\item{saveInterimFiles}{Logical value for whether or not interim files (.csvs) should be saved
+throughout the process. Default = FALSE. If saved, they will be saved in "interim_files" within
+"outputs" folder. This folder will be created if it does not exist and is needed.}
+
+\item{writeRakingLog}{Logical value for whether or not a log file (raking_log.csv) should be
+written. Default = FALSE. If written, it will be saved in "outputs" folder.}
+
+\item{readFiles}{Logical value for whether or not input files (InputData, CtrlPopTotals,
+CtrlRegionTotals, CtrlAgeGrpsTotals) need to be read in. Default = FALSE. If FALSE, files are
+already in environment, likely by being called or created through another function (e.g.,
+\code{\link{dbConvert}}).}
 }
 \value{
-RakedData.csv will be saved to "outputs" folder, along with various interim files (saved
-to "interim_files" within "outputs") and a log file ("raking_log.csv")
+RakedData.csv will be saved to "outputs" folder (which will be created if one does not
+already exist). If set to TRUE, various interim files will be saved in an "interim_files" folder
+within "outputs". If set to TRUE, a log file ("raking_log.csv") will also be saved to the
+"outputs" folder.
 }
 \description{
 Reads a population database file (population, migration) and saves a population database file
 with Region values raked for each of Age and Sex. Raking can be run with user-provided region
 control totals, or without region control totals. Negative population values may be allowed or
 not (default).
-This function assumes input files (e.g., InputData, Ctrl_Pop_Totals, etc.) are in an "inputs"
-folder, and that the raked output will save to an "outputs" folder. Interim files are also saved
-to an "interim_files" folder within "outputs". dbRake() is a large function that takes a few
-minutes to run, and depends on multiple smaller functions.
+
+This function assumes input files (e.g., InputData, CtrlPopTotals, etc.) are in an "inputs"
+folder. The raked output will save to an "outputs" folder (which will be created if one does
+not exist). If chosen, interim files are also saved to an "interim_files" folder within
+"outputs" (this will be created if it does not exist and saveInterimFiles is TRUE). dbRake()
+is a large function that takes a few minutes to run, and depends on multiple smaller functions.
 }
 \details{
-dbRake is a large function with three main parts. Part 1 prorates and rakes Sex values by Region.
-Part 2 prorates and rakes 5-year Age Group values by Region and Sex. Part 3 prorates and rakes
-single-year Age values by Region and Sex. Throughout, checks are performed and results are
-eventually written to raking_log.csv in the "outputs" folder (regardless of whether raking
-succeeds or fails). As well, interim files are saved to an "interim_files" folder in "outputs"
-for future viewing. If raking succeeds, the final raked data file is saved to "outputs".
+dbRake is a large function with three main parts. \strong{Part 1} prorates and rakes Sex values
+by Region. \strong{Part 2} prorates and rakes 5-year Age Group values by Region and Sex.
+\strong{Part 3} prorates and rakes single-year Age values by Region and Sex. Throughout, checks
+are performed and, if chosen, results are written to \strong{raking_log.csv} in the "outputs"
+folder (regardless of whether raking succeeds or fails). As well, interim files may be saved to
+an "interim_files" folder in "outputs" for future viewing. If raking succeeds, the final raked
+data file is saved to "outputs".
 
 dbRake was originally an APL process (not in R). A PDF documenting that process, which holds
 true for most of the underlying assumptions and procedures in dbRake, is available on BC Stats'
-Y drive (S152\\S52004) in Documentation > Raking > Methodology-Raking_Final.pdf.
+I drive (S152\\S52004) in \strong{Documentation > Raking > Methodology-Raking_Final.pdf}.
+}
+\examples{
+\dontrun{  dbRake(InputData = "POPHAE19.xlsx", CtrlPopTotals = "BC AS TOTALS.xlsx",
+                  CtrlRegionTotals = "LHA TOTALS.xlsx", CtrlAgeGrpsTotals = NULL,
+                  VarRegion = "LHA", VarSex = "Sex", VarSexTotal = 3, AgeGrpMax = NULL,
+                  allowNegatives = FALSE, saveInterimFiles = FALSE, writeRakingLog = FALSE,
+                  readFiles = TRUE)  }
+\dontrun{  ## if dbRake() is called in \code{\link{dbConvert}}(), which brings in inputs
+           dbRake(InputData = ToDB, CtrlPopTotals = control_totals,
+                  CtrlRegionTotals = region_totals, CtrlAgeGrpsTotals = NULL,
+                  VarRegion = "LHA", VarSex = "Sex", VarSexTotal = 3, AgeGrpMax = NULL,
+                  allowNegatives = FALSE, saveInterimFiles = FALSE, writeRakingLog = TRUE,
+                  readFiles = FALSE)  }
 }
 \seealso{
-Raking hekpers include: \code{\link{rounded}}(), \code{\link{read.inputs}}(),
+Raking helpers include: \code{\link{rounded}}(), \code{\link{read.inputs}}(),
 \code{\link{real.to.int}}(), \code{\link{calc.cols}}(), \code{\link{prorate.row}}(),
 \code{\link{prep.prorate.col}}(), \code{\link{prorate.col}}(), and raking algorithm functions A, B, C:
 \code{\link{allowNegsnoMargin}}(), \code{\link{noNegsnoMargin}}(), \code{\link{noNegsneedMargin}}()

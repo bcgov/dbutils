@@ -24,7 +24,7 @@ the original dataframe with four new columns (Sum, Ctrl_TOTAL, Diff, adj_value)
 calculates necessary columns (Sum, Ctrl_TOTAL, Diff, adj_value) in preparation for prorating rows
 or raking. First, it calculates the actual sum (of columns), then adds in VarRow control totals,
 then calculates the difference, and finally calculates the adjustment value (difference divided by
-number of groups). This is a helper function used in dbRake, and before calling \code{\link{prorate.row}}.
+number of groups). This is a helper function used in \code{\link{dbRake}}, and before calling \code{\link{prorate.row}}.
 }
 \details{
 This function is first called in dbRake Part 1 to update initial initial estimates of male/female

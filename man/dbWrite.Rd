@@ -11,7 +11,7 @@ dbWrite(db, db_path, overwrite = FALSE)
 with columns: Year, Type, TypeID, Age, Male, Female, Total.}
 
 \item{db_path}{Either vector of database type ("estimates", "projections", "births", "deaths"),
-region code and two-character year OR full path to datbase csv file.}
+region code and two-character year OR full path to database csv file.}
 
 \item{overwrite}{Whether to overwrite the file if a database already exists. Default = FALSE.}
 }
@@ -19,34 +19,31 @@ region code and two-character year OR full path to datbase csv file.}
 Writes a population database file (population, births, deaths). Data format is kept consistent
 with columns always including Year, Type, TypeID, Age, Male, Female, Total, in this order. As
 well, population databases include all possible region IDs and ages, even if that means a
-Male/Female/Total with N = 0. The complete list of region IDs and ages for each type of
-database (population, deaths, births) can be found at the \code{\link{dbutils}}. For historical
-reasons, population data is saved as POPXXEYY (population estimates), POPXXPYY (population projections),
-BIRXXYY (births) or DEAXXYY (deaths), where YY is the last two digits of the year. XX represents
-the shorthand for the region type. This was passed over from decades of BC Stats PEOPLE development
-limited to 2-digit codes.
-Two-digits region codes are as follow:
-\itemize{
- \item RD - Regional District, which is the same data as Census Division (CD)
- \item DR - Development region (DR)
- \item HA - Local Heath Area (LHA)
- \item HS - Health Service Delivera Area (HSDA)
- \item HY - Health Authority (HA)
- \item CH - Community Health Service Area (CHSA)
- \item CF - Ministry of Children and Family Development (MCFD)
- \item CA - MCFD Service Delivery Area (MCFD_SDA)
- \item CL - MCFD Local Service Area (MCFD_LSA)
- \item SD - School District (SD)
- \item PS - College Region, or Post-Secondary (CR)
- \item SR - Special Regions
-}
+Male/Female/Total with N = 0.
+
 Database output path does not have to be specified. The paths are hard-coded to ensure data is
 kept in the correct location. All that is needed is a database type (population estimates,
 population projections, deaths or births), the two-digit region code and the last two-digits of
 the database year based on a July 1st reference date. This is enough to figure out the full path
 of the database through the \code{\link{getDBPath}} function.
+
+Note that \code{\link{dbCheck}} is run before writing the file. User will be warned if any database
+checks fail.
+}
+\details{
+The complete list of region IDs and ages for each type of database (population, deaths, births)
+can be found in \code{\link{dbutils}}. For historical reasons, population data is saved as
+POPRREYY (population estimates), POPRRPYY (population projections), BIRRRYY (births) or
+DEARRYY (deaths), where RR is the shorthand for the region code, and YY is the last two digits
+of the year.
+}
+\examples{
+\dontrun{ dbWrite(data, c("estimates", "CF", "19"), overwrite = FALSE) }
+\dontrun{ dbWrite(data, "I://PopulationR/Database/Estimates/POPCFE19.csv", overwrite = FALSE) }
 }
 \seealso{
+Overall package documentation: \code{\link{dbutils}}()
+
 Other database access helpers: 
 \code{\link{dbCheck}()},
 \code{\link{dbInfo}()},
@@ -54,6 +51,6 @@ Other database access helpers:
 \code{\link{getDBPath}()}
 }
 \author{
-Sebastien Lavoie, (formerly, BC Stats)
+Sebastien Lavoie (formerly, BC Stats)
 }
 \concept{database access helpers}

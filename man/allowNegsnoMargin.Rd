@@ -33,11 +33,11 @@ or not), "whole people" adjustments to be made to selected cells in a row are ca
 "residual people" adjustments to be made to selected cells in a row are calculated, then column
 control totals are reconciled. Raking is run iteratively row-by-row. Regardless of the algorithm
 needed, five arguments are needed. A sixth argument, "needMargin" is only needed for algorithm C
-(\code{\link{noNegsneedMargin}}). This is a helper function used in dbRake when negative values
-ARE allowed.
+(\code{\link{noNegsneedMargin}}). This is a helper function used in \code{\link{dbRake}} when
+negative values ARE allowed.
 }
 \seealso{
-the overall raking function: \code{\link{dbRake}}()
+The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
 \code{\link{add.random.fraction.to.cols}()},

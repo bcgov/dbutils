@@ -1,14 +1,13 @@
 Package: dbutils
 Title: Utility functions to process and modify BC Stats' population databases
 Version: 0.0.0.9000
-Date: 2021-02-18
+Date: 2021-03-24
 Authors@R: 
-    c(
-    person(given = "Sebastien", family = "Lavoie", role = c("aut")),
-    person(given = "Julie", family = "Hawkins", role = c("aut", "cre"),
+    c(person(given = "Julie", family = "Hawkins", role = c("aut", "cre"),
            email = "Julie.Hawkins@gov.bc.ca"),
-    person(given = "Stephanie", family = "Yurchak", role = c("aut"),
-           email = "Stephanie.Yurchak@gov.bc.ca")
+      person(given = "Stephanie", family = "Yurchak", role = c("aut"),
+           email = "Stephanie.Yurchak@gov.bc.ca"),
+      person(given = "Sebastien", family = "Lavoie", role = c("aut"))
     )
 Description: Includes database utility functions for the BC Stats population section processes.
 License: Apache License (>= 2.0)
@@ -21,9 +20,12 @@ Imports:
     here,
     magrittr,
     openxlsx,
+    purrr,
     readr,
     rlang,
     stringr,
     tidyr,
     tidyselect,
     utils
+Depends: 
+    R (>= 2.10)

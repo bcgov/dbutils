@@ -16,6 +16,7 @@ dbRake(
   allowNegatives = FALSE,
   saveInterimFiles = FALSE,
   writeRakingLog = FALSE,
+  writeOutputFile = FALSE,
   readFiles = FALSE
 )
 }
@@ -38,7 +39,8 @@ control totals are not used. Instead, the InputData will be used to generate "co
 
 \item{CtrlAgeGrpsTotals}{Name of .xlsx or .csv file that contains initial 5 year age group totals.
 Default = NULL. In virtually all cases, this variable will be NULL. In these cases, the InputData
-will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 10-14, etc).}
+will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 10-14, etc).
+If age groups are of format -X1, -X2, ..., they will be transformed to "X-Y" format.}
 
 \item{VarRegion}{Name of Region variable in all files (e.g., "LHA")}
 
@@ -62,6 +64,13 @@ throughout the process. Default = FALSE. If saved, they will be saved in "interi
 
 \item{writeRakingLog}{Logical value for whether or not a log file (raking_log.csv) should be
 written. Default = FALSE. If written, it will be saved in "outputs" folder.}
+
+\item{writeOutputFile}{Logical value for whether or not final output file (.csv) should be written.
+Default = FALSE. If TRUE, the final raked data will be saved as "RakedData.csv" to "outputs"
+folder. Regardless of whether saved or not, the raked data returns to R's environment. Setting
+to TRUE reduces a step (\code{\link{dbWrite}}). Setting to TRUE is not useful when raking
+multiple years of data, as the output file will be overwritten for each successive year. In that
+case, call the raking function from multiRake.}
 
 \item{readFiles}{Logical value for whether or not input files (InputData, CtrlPopTotals,
 CtrlRegionTotals, CtrlAgeGrpsTotals) need to be read in. Default = FALSE. If FALSE, files are
@@ -104,13 +113,13 @@ I drive (S152\\S52004) in \strong{Documentation > Raking > Methodology-Raking_Fi
                   CtrlRegionTotals = "LHA TOTALS.xlsx", CtrlAgeGrpsTotals = NULL,
                   VarRegion = "LHA", VarSex = "Sex", VarSexTotal = 3, AgeGrpMax = NULL,
                   allowNegatives = FALSE, saveInterimFiles = FALSE, writeRakingLog = FALSE,
-                  readFiles = TRUE)  }
+                  writeOutputFile = FALSE, readFiles = TRUE)  }
 \dontrun{  ## if dbRake() is called in \code{\link{dbConvert}}(), which brings in inputs
            dbRake(InputData = ToDB, CtrlPopTotals = control_totals,
                   CtrlRegionTotals = region_totals, CtrlAgeGrpsTotals = NULL,
                   VarRegion = "LHA", VarSex = "Sex", VarSexTotal = 3, AgeGrpMax = NULL,
                   allowNegatives = FALSE, saveInterimFiles = FALSE, writeRakingLog = TRUE,
-                  readFiles = FALSE)  }
+                  writeOutputFile = TRUE, readFiles = FALSE)  }
 }
 \seealso{
 Raking helpers include: \code{\link{rounded}}(), \code{\link{read.inputs}}(),

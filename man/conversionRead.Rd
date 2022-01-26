@@ -19,7 +19,7 @@ For example, the table that converts from LHA to SD based on 2019 matches is cal
 (Historical APL naming was similar, but used dashes in place of underscores, and included the word
 TABLE before the year (e.g., LHA-SD-TABLE2019).)
 
-Conversion tables should be in the "I:/ConversionTables/" folder, to ensure consistency across
+Conversion tables are in the "I:/ConversionTables/" folder, to ensure consistency across
 population systems, and because \code{\link{dbConvert}} uses that hardcoded path to find the
 required conversion table. Conversion tables are expected to be .xlsx files with three unnamed
 columns with the proportional relationship (aka, "split"), source and destination geographies.
@@ -51,6 +51,7 @@ Geography B (destination).
 Overall package documentation: \code{\link{dbutils}}()
 
 Other conversion helpers: 
+\code{\link{conversionTables}()},
 \code{\link{dbConvert}()}
 }
 \concept{conversion helpers}

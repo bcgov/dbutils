@@ -4,7 +4,7 @@
 \alias{dbWrite}
 \title{Write population database}
 \usage{
-dbWrite(db, db_path, overwrite = FALSE)
+dbWrite(db, db_path, overwrite = FALSE, full_BC = TRUE)
 }
 \arguments{
 \item{db}{Data variable containing the database to be written. Expects data to be in data.frame
@@ -14,6 +14,10 @@ with columns: Year, Type, TypeID, Age, Male, Female, Total.}
 region code and two-character year OR full path to database csv file.}
 
 \item{overwrite}{Whether to overwrite the file if a database already exists. Default = FALSE.}
+
+\item{full_BC}{Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
+do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+Default = TRUE.}
 }
 \description{
 Writes a population database file (population, births, deaths). Data format is kept consistent

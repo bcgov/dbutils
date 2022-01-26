@@ -4,20 +4,24 @@
 \alias{dbInfo}
 \title{Population database dimension information}
 \usage{
-dbInfo(db_path)
+dbInfo(db_path, full_BC = TRUE)
 }
 \arguments{
 \item{db_path}{Either vector of database type ("estimates", "projections", "births", "deaths"),
 region code and two-character year OR full path to database csv file.}
+
+\item{full_BC}{Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
+do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+Default = TRUE.}
 }
 \value{
-List structure with unique values for Year, Type, TypeID, Region, Age and Sex.
+List structure with unique values for Year, Type, TypeID, Age and Sex.
 }
 \description{
 Reads a population database file (population, births, deaths) and returns list with unique
 values for each of Year, Type, TypeID, Age and Sex. Database path can be either a full path
-to a csv database file with the correct columns, or a vector including the type, region and
-year of database to be used through \code{\link{getDBPath}}. For example,
+to a csv database file with the correct columns, or a vector including the data type, region type
+and year of database to be used through \code{\link{getDBPath}}. For example,
 db_path = c("estimates", "HA", "19") would return info for the July 1st 2019 population
 estimates database for Local Health Areas.
 

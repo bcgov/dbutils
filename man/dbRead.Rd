@@ -4,7 +4,13 @@
 \alias{dbRead}
 \title{Read population database}
 \usage{
-dbRead(db_path, return_format = "default", age_filter = NULL)
+dbRead(
+  db_path,
+  return_format = "default",
+  age_filter = NULL,
+  db_check = TRUE,
+  full_BC = TRUE
+)
 }
 \arguments{
 \item{db_path}{Either vector of database type ("estimates", "projections", "births", "deaths"),
@@ -18,6 +24,15 @@ values are "default", "long" or "wide". Default = "default".}
 
 \item{age_filter}{Filters ages based on input vector before returning data in requested format.
 Must be a vector. Default = NULL.}
+
+\item{db_check}{Logical value whether to run \code{\link{dbCheck}} on data. Default = TRUE. This
+should be set to FALSE only if specific database is known to be ok, or to troubleshoot database
+errors other than column names (i.e., NOT database error 1a or 1b. That is, database must
+have the 7 columns: Year, Type, TypeID, Age, Male, Female, and Total).}
+
+\item{full_BC}{Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
+do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+Default = TRUE.}
 }
 \value{
 A data.frame object in the requested format.
@@ -45,6 +60,7 @@ of the year.
 dbRead(c("estimates", "HA", "19"), return_format = "wide", age_filter = c(0, 1, 2, 3, 4, -999))
 \dontrun{   dbRead("I://PopulationR/Database/Estimates/POPHAE19.csv", return_format = "wide",
                    age_filter = c(0, 1, 2, 3, 4, -999))  }
+dbRead(c("births", "HA", "19"), db_check = FALSE)
 }
 \seealso{
 Overall package documentation: \code{\link{dbutils}}()

@@ -9,13 +9,13 @@ dbCheck(db, full_BC = TRUE)
 \arguments{
 \item{db}{Data variable containing the database to be checked.}
 
-\item{full_BC}{Logical whether the region covers all of BC. Those regions (e.g., CMAs) that
+\item{full_BC}{Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
 do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
 Default = TRUE.}
 }
 \value{
-db_ok, a logical. If the database passes all checks, db_ok = TRUE. Otherwise, any error(s)
-will be printed to screen and db_ok will be set to FALSE.
+db_ok Logical value. If the database passes all checks, db_ok = TRUE. Otherwise, any
+error(s) will be printed to screen and db_ok will be set to FALSE.
 }
 \description{
 Checks a database for specific errors, at loading (\code{\link{dbRead}}, \code{\link{dbInfo}}),
@@ -25,7 +25,7 @@ after raking (\code{\link{dbRake}}), or before saving (\code{\link{dbWrite}}).
  \item Each Year of data must have the same number of occurrences.
  \item Years of data must be continuous (no year can be missing).
  \item The Total column must equal the sum of the Male and Female columns.
- \item All combinations of region ID, age and sex must be included (even if N = 0).
+ \item All combinations of region's TypeID, Age and sex must be included (even if N = 0).
  \item For Females: (a) the sum over all age groups must be equal (i.e., single age groups
  add to total (-999), (b) "ages and over" are sum of corresponding single ages, and, (c) 5-year
  age groups are sum of corresponding single ages).

@@ -6,12 +6,14 @@
 \title{dbutils: A package of utility functions for processing population data}
 \description{
 The dbutils package is a set of utility functions for processing and modifying BC Stats'
-population data via three main categories:
+population data via four main categories:
 \itemize{
  \item database \strong{access} functions (\code{\link{getDBPath}}, \code{\link{dbCheck}},
  \code{\link{dbInfo}}, \code{\link{dbRead}}, \code{\link{dbWrite}})
- \item \strong{conversion} functions (\code{\link{conversionRead}}, \code{\link{dbConvert}})
+ \item \strong{conversion} functions (\code{\link{conversionTables}}, \code{\link{conversionRead}},
+ \code{\link{dbConvert}})
  \item \strong{raking} functions (\code{\link{dbRake}}, raking helper functions)
+ \item \strong{app} function (\code{\link{updateAppData}} to update app data)
 }
 }
 \section{About}{
@@ -48,9 +50,10 @@ of BC Stats PEOPLE development limited to 2-digit codes).
 
 \section{Region codes}{
 
-Two-digit region codes are as follows:
+Common region codes are as follows:
 \itemize{
  \item RD - Regional District (which is the same data as Census Division (CD))
+ \item CS/CSD - Census Subdivision (CDCSD)
  \item DR - Development Region (DR)
  \item HA - Local Heath Area (LHA)
  \item HS - Health Service Delivery Area (HSDA)
@@ -59,9 +62,11 @@ Two-digit region codes are as follows:
  \item CF - Ministry of Children and Family Development (MCFD)
  \item CA - MCFD Service Delivery Area (MCFD_SDA)
  \item CL - MCFD Local Service Area (MCFD_LSA)
+ \item MP/RCMP - Police Respondent Areas (RESP)
+ \item ED/PED - Provincial Electoral District (PED)
  \item SD - School District (SD)
  \item PS - College Region or Post-Secondary (CR)
- \item SR - Special Regions (includes CMA/CA, Van Isle and Van Isle excluding CRD. Does not add up to BC total)
+ \item SR - Special Regions (includes CMA/CA, Van Isle (VI) and Van Isle excluding CRD (VN). Does not add up to BC total)
 }
 }
 
@@ -78,12 +83,15 @@ etc.), while those that end in 0 or 5 are "and over" groups beginning with that 
 grouped for 100 and over. (APL did not produce population for ages beyond 100+, so 100:109
 and -110 have 0 population, although they do not have to be in future.) \strong{Death} data is
 available in single age years up to 120 years old. \strong{Birth} data is available only for
-ages 15 to 65 and over. (Age in birth data refers to the mother's age.)
+ages 15 to 65 and over. (Age in birth data refers to the mother's age.) Population estimates and
+projections apps only need total and individual ages 0:89, and 90+ (i.e., exclude ages above 90
+and any 5 year age groups) as the app creates age groups on the fly.
 
 \itemize{
  \item popall <- c(seq(0, 109), seq(-4, -109, -5), -90, -100, -110, -999)
  \item pop1yr90 <- c(seq(0, 89), -90, -999)
  \item pop1yr100 <- c(seq(0, 99), -100, -999)
+ \item pop1yrOver90 <- c(seq(90, 120))
  \item pop5yr90 <- c(seq(-4, -89, -5), -90, -999)
  \item pop5yr100 <- c(seq(-4, -99, -5), -100, -999)
  \item deaall <- c(seq(0, 119), seq(-4, -119, -5), -90, -120, -999)

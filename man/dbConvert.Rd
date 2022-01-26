@@ -4,7 +4,14 @@
 \alias{dbConvert}
 \title{Convert population database}
 \usage{
-dbConvert(db, conv_table, rake = TRUE, change_rake_args = FALSE)
+dbConvert(
+  db,
+  conv_table,
+  years = NULL,
+  rake = TRUE,
+  change_rake_args = FALSE,
+  full_BC = TRUE
+)
 }
 \arguments{
 \item{db}{Data variable containing the source database to be converted. Expects data to be in
@@ -14,6 +21,9 @@ data.frame with columns: Year, Type, TypeID, Age, Male, Female, Total.}
 relationship ("split") between source and destination geographies. Conversion table path is
 hardcoded to ensure consistency across population systems, and will find conversion table in
 "I:/ConversionTables/" folder.}
+
+\item{years}{Vector of one or more years to be included in the converted destination data.
+Default = NULL. If NULL, the function will convert for all years in the source data.}
 
 \item{rake}{Whether raking is required (default) or not. Default = TRUE.}
 
@@ -28,13 +38,21 @@ table, e.g., HA);
 exists; however, dbConvert sets this to the strongly recommended age 75);
 \strong{allowNegatives} (default = FALSE, should only be TRUE for migration data);
 \strong{saveInterimFiles} (default = FALSE);
-\strong{writeRakingLog} (default = FALSE).
+\strong{writeOutputFile} (default = FALSE);
+\strong{writeRakingLog} (default = FALSE).}
+
+\item{full_BC}{Logical value whether the region covers all of BC. Default = TRUE. Those regions
+(e.g., VI, CMAs) that do not cover all of BC have full_BC = FALSE, and their sum is not checked
+against the BC total. As well, during conversion, source geographies not included in the
+destination geographies are dropped from the From and To working datafiles.
+
 Regardless of `change_rake_args`'s value, \code{\link{dbRake}}'s argument `readFiles` will be
 set to FALSE because the input files will be created during the conversion process.}
 }
 \value{
 Database converted from source to destination geography. If not all allocations were 100,
-(i.e., some splits < 100), then raking was also done.
+(i.e., some splits < 100), then raking was also done (unless explicitly set to FALSE). Note that
+Age can be a positive age (e.g., 0, 1, 2, ...), a 5-year age group (e.g., 0-4) or TOTAL.
 }
 \description{
 Converts a population database to another geography using a conversion table and, possibly,
@@ -57,7 +75,7 @@ The conversion process is as follows:
  \item If not all regions are 1-to-1, "split" destination geographies must conform to source
  totals (aka, "control population totals"), achieved using raking (\code{\link{dbRake}}).
  If Step (1) removed some 1-to-1 regions, the control totals will be adjusted downward. Destination
- control totals (aka, "control region totals", or dbRake's "CtrlregionTotals") are set as NULL and
+ control totals (aka, "control region totals", or dbRake's "CtrlRegionTotals") are set as NULL and
  will be generated during the raking process from the converted destination data (aka, "InputData").
  \item Any 1-to-1 regions removed during Step (1) are added back to Geography B (under the
  Geography B naming convention).
@@ -66,11 +84,13 @@ The conversion process is as follows:
 \examples{
 \dontrun{ dbConvert(db = "POPHAP20", conv_table = "Table-LHA-HSDA-2019.xlsx", rake = FALSE) } ## all 100\%
 \dontrun{ dbConvert(db = "POPHAP20", conv_table = "Table-LHA-SD-2019") }          ## some split
+\dontrun{ dbConvert(db = "POPCSE21", conv_table = "Table-CSD-VI_NO_CRD-2020", full_BC = FALSE) }
 }
 \seealso{
 Overall package documentation: \code{\link{dbutils}}()
 
 Other conversion helpers: 
-\code{\link{conversionRead}()}
+\code{\link{conversionRead}()},
+\code{\link{conversionTables}()}
 }
 \concept{conversion helpers}

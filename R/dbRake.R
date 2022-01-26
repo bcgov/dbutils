@@ -47,6 +47,50 @@ read.inputs <- function(inputFile) {
 rounded <- function(x) { trunc(x + 0.5) }
 
 
+#### rename.age.grps ----
+#' Rename negative columns as 5 year age groups
+#'
+#' Some databases may have 5 year age groups as -4, -9, -14, ... meaning 0-4, 5-9, 10-14, ....
+#' However, the \code{\link{dbRake}} function requires depends on age group column names as 'X-Y'.
+#' This is a helper function used in \code{\link{dbRake}}.
+#'
+#' @param data A dataset with -X1, -X2, -X3, ... column names
+#' @param VarRegion Name of Region variable in all files (e.g., "LHA")
+#' @param VarSex Name of Sex variable in all files (e.g., "Sex")
+#' @return data with X-Y col names
+#' @family raking helpers
+#' @seealso The overall raking function: \code{\link{dbRake}}()
+rename.age.grps <- function(data, VarRegion, VarSex) {
+
+  ## prep
+  ageLast <- names(data)[ncol(data)-1]
+  othCols <- c({{VarRegion}}, {{VarSex}}, {{ageLast}}, "TOTAL")
+  negs <- data %>% dplyr::select(tidyselect::starts_with(match = "-")) %>% names()
+
+  ## need to create 5yr age group names; have -4, -9, -14, etc, need 0-4, 5-9, etc
+  ## https://stackoverflow.com/questions/36143119/how-to-get-last-subelement-of-every-element-of-a-list-in-r
+  negCols <- names(data)[!(names(data) %in% othCols) & stringr::str_detect(names(data), "-")]
+  ageEnds <- sapply(stringr::str_split(negCols, pattern = "-"), utils::tail, n = 1) %>% as.numeric()
+  ageOth <- negCols[which(as.numeric(negCols) %% 5 == 0)]  ## numbers evenly divisible by 5 (i.e., end in 0 or 5)
+  othCols <- c(othCols, ageOth) %>% unique()
+  ageOth <- stringr::str_replace(ageOth, pattern = "-", replacement = "")  ## drop neg sign to find in ageEnds
+  ageEnds <- ageEnds[!(ageEnds %in% ageOth)]
+  AgeGrps5Yr <- rep(NA, length(ageEnds))
+  for (i in 1:length(AgeGrps5Yr)) {
+    AgeGrps5Yr[i] <- paste0((ageEnds[i]-4), "-", ageEnds[i])
+  }                      ## AgeGrps5Yr: "0-4" "5-9" "10-14" ... "85-89" "90-94" "95-99"
+
+  ## rename {{data}} columns to match AgeGrps5Yr
+  colnames(data)[!colnames(data) %in% othCols & colnames(data) %in% negs] <- AgeGrps5Yr
+
+  ## drop any remaining negative column names from {{data}}
+  if(any(names(data) %in% negs)) {  data <- data %>% dplyr::select(-tidyselect::any_of(negs))  }
+
+  return(data)
+
+}
+
+
 #### real.to.int ----
 #' Converts real numbers to integers
 #'
@@ -268,8 +312,6 @@ prorate.col <- function(CurrCol, n_rowGrps, allowNegatives) {
     dplyr::select(tidyselect::all_of(myCol)) %>% dplyr::pull()
 
   CurrCol[1:n_rowGrps, -1] <- CurrCol[1:n_rowGrps, -1] + adj_value
-  # CurrCol[1:n_rowGrps, ] <- CurrCol[1:n_rowGrps, ] %>% dplyr::mutate(dplyr::across(tidyselect::all_of(myCol), `+`, adj_value))
-  # CurrCol[1:n_rowGrps, -1] <- CurrCol[1:n_rowGrps, -1] + CurrCol[which(CurrCol[, 1] == "adj_value"), -1]
 
   ## if negatives are NOT allowed, replace any negative adjusted data with zero
   if(allowNegatives == FALSE) {
@@ -954,6 +996,7 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #' @param CtrlAgeGrpsTotals Name of .xlsx or .csv file that contains initial 5 year age group totals.
 #' Default = NULL. In virtually all cases, this variable will be NULL. In these cases, the InputData
 #' will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 10-14, etc).
+#' If age groups are of format -X1, -X2, ..., they will be transformed to "X-Y" format.
 #' @param VarRegion Name of Region variable in all files (e.g., "LHA")
 #' @param VarSex Name of Sex variable in all files (e.g., "Sex")
 #' @param VarSexTotal Value that corresponds to Total (e.g., 3, when 1 and 2 are Male and Female)
@@ -970,6 +1013,12 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #' "outputs" folder. This folder will be created if it does not exist and is needed.
 #' @param writeRakingLog Logical value for whether or not a log file (raking_log.csv) should be
 #' written. Default = FALSE. If written, it will be saved in "outputs" folder.
+#' @param writeOutputFile Logical value for whether or not final output file (.csv) should be written.
+#' Default = FALSE. If TRUE, the final raked data will be saved as "RakedData.csv" to "outputs"
+#' folder. Regardless of whether saved or not, the raked data returns to R's environment. Setting
+#' to TRUE reduces a step (\code{\link{dbWrite}}). Setting to TRUE is not useful when raking
+#' multiple years of data, as the output file will be overwritten for each successive year. In that
+#' case, call the raking function from multiRake.
 #' @param readFiles Logical value for whether or not input files (InputData, CtrlPopTotals,
 #' CtrlRegionTotals, CtrlAgeGrpsTotals) need to be read in. Default = FALSE. If FALSE, files are
 #' already in environment, likely by being called or created through another function (e.g.,
@@ -983,13 +1032,13 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #'                   CtrlRegionTotals = "LHA TOTALS.xlsx", CtrlAgeGrpsTotals = NULL,
 #'                   VarRegion = "LHA", VarSex = "Sex", VarSexTotal = 3, AgeGrpMax = NULL,
 #'                   allowNegatives = FALSE, saveInterimFiles = FALSE, writeRakingLog = FALSE,
-#'                   readFiles = TRUE)  }
+#'                   writeOutputFile = FALSE, readFiles = TRUE)  }
 #' \dontrun{  ## if dbRake() is called in \code{\link{dbConvert}}(), which brings in inputs
 #'            dbRake(InputData = ToDB, CtrlPopTotals = control_totals,
 #'                   CtrlRegionTotals = region_totals, CtrlAgeGrpsTotals = NULL,
 #'                   VarRegion = "LHA", VarSex = "Sex", VarSexTotal = 3, AgeGrpMax = NULL,
 #'                   allowNegatives = FALSE, saveInterimFiles = FALSE, writeRakingLog = TRUE,
-#'                   readFiles = FALSE)  }
+#'                   writeOutputFile = TRUE, readFiles = FALSE)  }
 #' @seealso Raking helpers include: \code{\link{rounded}}(), \code{\link{read.inputs}}(),
 #' \code{\link{real.to.int}}(), \code{\link{calc.cols}}(), \code{\link{prorate.row}}(),
 #' \code{\link{prep.prorate.col}}(), \code{\link{prorate.col}}(), and raking algorithm functions A, B, C:
@@ -998,12 +1047,15 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #' @export
 dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrpsTotals = NULL,
                    VarRegion, VarSex, VarSexTotal, AgeGrpMax = NULL, allowNegatives = FALSE,
-                   saveInterimFiles = FALSE, writeRakingLog = FALSE, readFiles = FALSE) {
+                   saveInterimFiles = FALSE, writeRakingLog = FALSE, writeOutputFile = FALSE,
+                   readFiles = FALSE) {
 
   #### 0. Prep ----
 
   ## A. check for required folder(s); create if needed and doesn't exist
-  if(!file.exists(here::here("outputs"))) {
+  # if(!file.exists(here::here("outputs"))) {
+  if(any(writeOutputFile == TRUE, saveInterimFiles == TRUE, writeRakingLog == TRUE) &
+     !file.exists(here::here("outputs"))) {
     dir.create(here::here("outputs"))
     message(paste0("An 'outputs' folder has been created at '", here::here(), "/'."))
   }
@@ -1102,17 +1154,27 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }
   }
 
-  ## E. create OutputData from InputData, that will be updated with changes
+  ## E. rename negative column names as 5yr age groups where necessary
+  InputDataCols <- names(InputData)
+  InputData <- rename.age.grps(data = InputData, VarRegion, VarSex)
+  CtrlPopTotals <- rename.age.grps(data = CtrlPopTotals, VarRegion, VarSex)
+  if(!is.null(CtrlAgeGrpsTotals)) {
+    CtrlAgeGrpsTotals <- rename.age.grps(data = CtrlAgeGrpsTotals, VarRegion, VarSex)
+  }
+
+  ## F. create OutputData from InputData, that will be updated with changes
   OutputData <- InputData
 
   if(writeRakingLog == TRUE) {
-    ## E. add message to raking_log re set values
+    ## F. add message to raking_log re: set values
     raking_log[nrow(raking_log)+1, 1] <- paste0("Prep: you set '", VarRegion, "' as the region, and '",
                                                 VarSexTotal, "' as the value for Sex Total; also, '",
                                                 AgeGrpMax, "' is the maximum age, meaning this age and ",
                                                 "older will be prorated, but not raked, to minimize ",
                                                 "distortion in older populations.")
   }
+
+  message("Raking process has begun...")
 
   #### Part 1 ----
   ## Part 1. Updating initial estimates of male/female regional total values
@@ -1272,7 +1334,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## !!!! If there are NO CtrlRegionTotals !!!!
 
     ## need to create "Sum" column that would have been made if we ran steps 1J through 1Q
-    dataCols <- dataCols %>% dplyr::mutate(Sum = rowSums(dataCols[ , -1])) #as.numeric(`1`) + as.numeric(`2`))
+    dataCols <- dataCols %>% dplyr::mutate(Sum = rowSums(dataCols[ , -1]))
 
     ## need to create "Ctrl_Regions_Total" file (to be used later in checks) now that we have created them
     CtrlRegionTotals <- dataCols[1:n_Regions, ] %>% dplyr::select({{VarRegion}} := VarRow, TOTAL = Sum)
@@ -1471,6 +1533,14 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
   } else {
     ageLast <- names(CtrlAgeGrpsTotals)[ncol(CtrlAgeGrpsTotals)-1]
+
+    ## AgeGrps5Yr names (ignore last age0s which should be last age group in data (e.g., 100, 90))
+    AgeGrps5Yr <- names(CtrlAgeGrpsTotals)[stringr::str_detect(names(CtrlAgeGrpsTotals), "-")]
+
+    ## OutputData5: prep 5 year & maximum age groups data
+    OutputData5 <- OutputData %>% dplyr::rename(Region = {{VarRegion}}, Sex = {{VarSex}}) %>%
+      dplyr::select(Region, Sex, tidyselect::all_of(AgeGrps5Yr), tidyselect::all_of(ageLast), TOTAL)
+
   }
 
   ## 2A. identify Sexes (e.g., 1, 2, 3), set CurrSex as first element,
@@ -1552,6 +1622,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         dplyr::select(Region, Sex, tidyselect::everything())
 
       data <- rbind(data, temp); rm(temp)
+      data <- dplyr::select(data, Region, Sex, tidyselect::all_of(AgeGrps5Yr), tidyselect::all_of(ageLast), TOTAL)
 
     }
 
@@ -1750,6 +1821,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## 2L. set CurrRow_value, and pull CurrRow from data to work on, iterate over rows
     CurrRow_value <- 1  ## first row in data first time through; CurrRow[1,]
 
+    ## note: this does NOT run when there is only ONE n_rowGrps! (e.g., raking VI, VI_NO_CRD)
     while(CurrRow_value < n_rowGrps) {
 
       CurrRow <- dataCols[CurrRow_value, ]
@@ -1804,6 +1876,8 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
         }
       }
+
+      rm(CurrRow, RowAdj, needMargin)
 
       ## update CurrRow_value
       CurrRow_value <- CurrRow_value + 1
@@ -1888,7 +1962,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }
 
     ### clean up
-    rm(temp, data, CurrRow, CurrRow_value, RowAdj, dataCols, rows_order, needMargin, n_colGrps, n_rowGrps, MaxAge)
+    rm(temp, data, CurrRow_value, dataCols, rows_order, n_colGrps, n_rowGrps, MaxAge)
 
     ## 2U. move to next Sex
     CurrSex <- CurrSex + 1
@@ -1944,7 +2018,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
 
   #### Part 3 ----
-  ## Part 3. Updating initial single year of age estimates, by Sex ----
+  ## Part 3. Updating initial single year of age estimates, by Sex
 
   ## Part 3.0: prep ----
   ## 3A. set number of single ages (minus Sex and TOTAL columns) and CurrSex
@@ -2032,6 +2106,11 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## example: sum(data[,names(data) %in% AgeSingles[1]]) - CtrlPopTotals[CtrlPopTotals$Sex == CurrSex, names(CtrlPopTotals) == AgeSingles[1]]   ## likely not zero
       ### *************************************************************************************** ###
 
+      # if(allowNegatives == FALSE & !all(data[,names(data) %in% AgeSingles] >= 0)) {
+      #   message(paste0("Error 3.1: (prorating single age data, rows): Negatives are not allowed, ",
+      #               "but exist in Age group ", CurrAgeGrp, " after prorating rows."))
+      # }
+
 
       ## Part 3.2: prorate columns ----
       ### ** Rake down columns to match column totals: PrivateReconcileTotalsByAdding, aka, prorate **
@@ -2065,7 +2144,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         }
 
         ## ensure all numbers are integers (i.e., no fractional people allowed)
-        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1] %>% dplyr::pull())
 
         ## replace actual data with adjusted data in CurrCol
         dataCols[ ,i] <- CurrCol[,-1]
@@ -2086,6 +2165,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## sum(dataCols[1:n_Regions, names(dataCols) == AgeSingles[5]]) - CtrlPopTotals[CurrSex, names(CtrlPopTotals) == AgeSingles[5]]  ## should be zero
       ### *************************************************************************************** ###
 
+      # if(allowNegatives == FALSE & !all(dataCols[1:n_Regions, names(dataCols) %in% AgeSingles] >= 0)) {
+      #   stop(paste0("Error 3.2: (prorating single age data, rows): Negatives are not allowed, ",
+      #               "but exist in Age group ", CurrAgeGrp, " after prorating columns"))
+      # }
 
       ## Part 3.3: rake prorated data ----
       ## 3J. calc necessary columns: Sum, Ctrl_TOTAL, Diff, adj_value
@@ -2113,6 +2196,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## 3L. set CurrRow_value, and pull CurrRow from data to work on, iterate over rows
       CurrRow_value <- 1  ## first row in data first time through; CurrRow[1,]
 
+      ## note: this does NOT run when there is only ONE n_rowGrps! (e.g., raking VI, VI_NO_CRD)
       while(CurrRow_value < n_rowGrps) {
 
         CurrRow <- dataCols[CurrRow_value, ]
@@ -2168,11 +2252,12 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
           }
         }
 
+        rm(CurrRow, RowAdj, needMargin)
+
         ## update CurrRow_value
         CurrRow_value <- CurrRow_value + 1
 
       }
-
 
       ## 3Q. adjust last row and update Sum & Diff rows
       dataCols[which(dataCols[, 1] == "Sum"), 2:(n_colGrps+1)] <- as.list(colSums(dataCols[1:n_rowGrps, 2:(n_colGrps+1)]))
@@ -2211,6 +2296,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       testAge3 <- sum(dataCols[1:n_rowGrps, which(names(dataCols) %in% AgeSingles[3])]) == CtrlPopTotals[CtrlPopTotals$Sex == CurrSex, which(names(CtrlPopTotals) == AgeSingles[3])]
       testAge4 <- sum(dataCols[1:n_rowGrps, which(names(dataCols) %in% AgeSingles[4])]) == CtrlPopTotals[CtrlPopTotals$Sex == CurrSex, which(names(CtrlPopTotals) == AgeSingles[4])]
       testAge5 <- sum(dataCols[1:n_rowGrps, which(names(dataCols) %in% AgeSingles[5])]) == CtrlPopTotals[CtrlPopTotals$Sex == CurrSex, which(names(CtrlPopTotals) == AgeSingles[5])]
+      if(allowNegatives == FALSE & !all(dataCols[1:n_rowGrps, which(names(dataCols) %in% AgeSingles)] >= 0)) {
+        message(paste0("Error 3.3 (raking single age data): Age group ", CurrAgeGrp,
+                    " is NOT raked ok. Negatives are not allowed, but exist in raked data."))
+      }
       if(all(testAll, testAge1, testAge2, testAge3, testAge4, testAge5) == TRUE) {
         if(writeRakingLog == TRUE) {
           ## add message to raking_log
@@ -2220,7 +2309,8 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         }
         rm(testAll, testAge1, testAge2, testAge3, testAge4, testAge5)
       } else {
-        stop(paste0("Error 3.3 (raking single age data): Age group ", CurrAgeGrp, " is NOT raked ok. Something does not balance to one or more Control Total(s)."))
+        message(paste0("Error 3.3 (raking single age data): Age group ", CurrAgeGrp,
+                    " is NOT raked ok. Something does not balance to one or more Control Total(s)."))
       }
 
 
@@ -2233,8 +2323,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       OutputData[OutputData$Sex == CurrSex, as.character(AgeSingles)] <- temp
 
       ## clean up
-      rm(temp, data, CurrRow, CurrRow_value, RowAdj, dataCols, rows_order,
-         needMargin, n_colGrps, n_rowGrps, CurrAgeGrp, AgeSingles)
+      rm(temp, data, CurrRow_value, dataCols, rows_order, n_colGrps, n_rowGrps, CurrAgeGrp, AgeSingles)
 
       ## 3T. move to next age in AgeGrps5Yr
       age <- age + 1
@@ -2291,9 +2380,14 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## any(OutputData < 0)   ## need FALSE if allowNegatives = FALSE
   ## all(OutputData >= 0)  ## need TRUE if allowNegatives = FALSE
   ### *************************************************************************************** ###
-  testCols1 <- sum(OutputData[OutputData$Sex == 1, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]
-  testCols2 <- sum(OutputData[OutputData$Sex == 2, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
-  testCols3 <- sum(OutputData[OutputData$Sex == 3, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
+  # testCols1 <- sum(OutputData[OutputData$Sex == 1, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]
+  # testCols2 <- sum(OutputData[OutputData$Sex == 2, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
+  # testCols3 <- sum(OutputData[OutputData$Sex == 3, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
+  ageSingleCols <- names(OutputData)[stringr::str_detect(names(OutputData), "-", negate = TRUE)]
+  ageSingleCols <- ageSingleCols[ageSingleCols != VarRegion & ageSingleCols != VarSex & ageSingleCols != "TOTAL"]
+  testCols1 <- sum(OutputData[OutputData$Sex == 1, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]
+  testCols2 <- sum(OutputData[OutputData$Sex == 2, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
+  testCols3 <- sum(OutputData[OutputData$Sex == 3, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
   testRows <- all((OutputData$TOTAL[OutputData$Sex == VarSexTotal] == CtrlRegionTotals$TOTAL) == TRUE)
   if(allowNegatives == FALSE & any(OutputData < 0) == FALSE) {
     testCells <- TRUE
@@ -2307,14 +2401,16 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
   if(all(c(testCols1, testCols2, testCols3, testRows, testCells) == TRUE)) {
 
-    ## save as final output file
-    readr::write_csv(OutputData, here::here("outputs", "RakedData.csv"))
+    if(writeOutputFile == TRUE) {
+      ## write final (raked) output file
+      readr::write_csv(OutputData, here::here("outputs", "RakedData.csv"))
+      message("Data has been successfully raked. See 'outputs' for 'RakedData.csv'.")
+    } else { message("   Data has been successfully raked.") }
 
     if(writeRakingLog == TRUE) {
       # add message to raking_log
-      raking_log[nrow(raking_log)+1, 1] <- "SUCCESS. Data has been successfully raked. See 'outputs' for 'RakedData.csv'."
+      raking_log[nrow(raking_log)+1, 1] <- "SUCCESS. Data has been successfully raked."
     }
-    message("Data has been successfully raked. See 'outputs' for 'RakedData.csv'.")
     rm(testCols1, testCols2, testCols3, testRows, testCells)
     rm(CurrSex, TotalSex, counter, age)
 

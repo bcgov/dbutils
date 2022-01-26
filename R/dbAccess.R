@@ -29,23 +29,25 @@
 #' @author Sebastien Lavoie (formerly, BC Stats)
 #' @export
 getDBPath <- function(dbType, dbRegion, dbYear) {
+
   if(is.null(dbRegion)) {
     stop("Error: No region type specified.")
-  } else if(!(dbRegion %in% c("RD", "DR", "HA", "HS", "HY", "CF", "CA", "CL", "SD", "PS", "SR", "CH"))) {
+  #} else if(!(dbRegion %in% c("RD", "DR", "HA", "HS", "HY", "CF", "CA", "CL", "SD", "PS", "SR", "CH"))) {
+  } else if(!(dbRegion %in% names(regionIDs) | dbRegion %in% FrankNames$ID)) {
     stop("Error: Unrecognized region type.")
   }
 
   if(is.null(dbYear)) {
     stop("Error: No year specified.")
   } else if(!is.character(dbYear) || stringr::str_length(dbYear) != 2) {
-    stop("Error: Incorrect dbYear value. Must be two-digit year as character. e.g. '17'")
+    stop("Error: Incorrect dbYear value. Must be two-digit year as character, e.g. '17'")
   }
 
   if(!(dbType %in% c("estimates", "projections", "births", "deaths"))) {
     stop("Error: Unrecognized database type.")
   }
 
-  if(dbType == "estimates") {
+  if(       dbType == "estimates") {
     db_path <- paste0(dbPaths$est_path, "POP", dbRegion, "E", dbYear, ".csv")
   } else if(dbType == "projections") {
     db_path <- paste0(dbPaths$proj_path, "POP", dbRegion, "P", dbYear, ".csv")
@@ -72,7 +74,7 @@ getDBPath <- function(dbType, dbRegion, dbYear) {
 #'  \item Each Year of data must have the same number of occurrences.
 #'  \item Years of data must be continuous (no year can be missing).
 #'  \item The Total column must equal the sum of the Male and Female columns.
-#'  \item All combinations of region ID, age and sex must be included (even if N = 0).
+#'  \item All combinations of region's TypeID, Age and sex must be included (even if N = 0).
 #'  \item For Females: (a) the sum over all age groups must be equal (i.e., single age groups
 #'  add to total (-999), (b) "ages and over" are sum of corresponding single ages, and, (c) 5-year
 #'  age groups are sum of corresponding single ages).
@@ -89,11 +91,11 @@ getDBPath <- function(dbType, dbRegion, dbYear) {
 #' and/or, if database has NO 5-year age groups (i.e., negative ages ending in 4 or 9).
 #'
 #' @param db Data variable containing the database to be checked.
-#' @param full_BC Logical whether the region covers all of BC. Those regions (e.g., CMAs) that
+#' @param full_BC Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
 #' do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
 #' Default = TRUE.
-#' @return db_ok, a logical. If the database passes all checks, db_ok = TRUE. Otherwise, any error(s)
-#' will be printed to screen and db_ok will be set to FALSE.
+#' @return db_ok Logical value. If the database passes all checks, db_ok = TRUE. Otherwise, any
+#' error(s) will be printed to screen and db_ok will be set to FALSE.
 #' @examples
 #' \dontrun{   dbCheck(db = "I:/VITAL/Database/Births/BIRHA19.csv", full_BC = TRUE)   }
 #' \dontrun{   dbCheck("I:/PopulationR/Database/Projections/POPHAP19.csv")   }
@@ -276,8 +278,8 @@ dbCheck <- function(db, full_BC = TRUE) {
 #' @description
 #' Reads a population database file (population, births, deaths) and returns list with unique
 #' values for each of Year, Type, TypeID, Age and Sex. Database path can be either a full path
-#' to a csv database file with the correct columns, or a vector including the type, region and
-#' year of database to be used through \code{\link{getDBPath}}. For example,
+#' to a csv database file with the correct columns, or a vector including the data type, region type
+#' and year of database to be used through \code{\link{getDBPath}}. For example,
 #' db_path = c("estimates", "HA", "19") would return info for the July 1st 2019 population
 #' estimates database for Local Health Areas.
 #'
@@ -293,7 +295,10 @@ dbCheck <- function(db, full_BC = TRUE) {
 #'
 #' @param db_path Either vector of database type ("estimates", "projections", "births", "deaths"),
 #' region code and two-character year OR full path to database csv file.
-#' @return List structure with unique values for Year, Type, TypeID, Region, Age and Sex.
+#' @param full_BC Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
+#' do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+#' Default = TRUE.
+#' @return List structure with unique values for Year, Type, TypeID, Age and Sex.
 #' @examples
 #' \dontrun{  dbInfo("I://PopulationR/Database/Estimates/POPHAE19.csv")  }
 #' dbInfo(c("estimates", "HA", "19"))
@@ -302,33 +307,32 @@ dbCheck <- function(db, full_BC = TRUE) {
 #' @author Sebastien Lavoie (formerly, BC Stats)
 #' @seealso Overall package documentation: \code{\link{dbutils}}()
 #' @export
-dbInfo <- function(db_path) {
-  if(length(db_path) == 1) {  # DB path is a full path
-    data <- data.table::fread(db_path, header = TRUE, stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
-  } else if(length(db_path) == 3) { # DB path is type, region, year for getDBPath
-    data <- data.table::fread(getDBPath(db_path[1], db_path[2], db_path[3]), header = TRUE, stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
-  } else { # Error unrecognized path
+dbInfo <- function(db_path, full_BC = TRUE) {
+
+  if(length(db_path) == 1) {                # DB path is a full path
+    data <- data.table::fread(db_path, header = TRUE,
+                              stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
+  } else if(length(db_path) == 3) {         # DB path is type, region, year for getDBPath
+    data <- data.table::fread(getDBPath(db_path[1], db_path[2], db_path[3]), header = TRUE,
+                              stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
+  } else {                                  # Error unrecognized path
     stop("Error: Incorrect db_path format.")
   }
 
-  db_ok <- dbCheck(data, full_BC = TRUE)  # database check
-  if(db_ok == FALSE) {
+  db_ok <- dbCheck(data, full_BC = full_BC) # Database check
+  if(db_ok == FALSE) {                      # Throw error
     warning("Warning: one or more database checks failed. Run `dbutils::dbCheck()` for more information.")
   }
 
-  # if(db_ok == TRUE) {
-    db_info <- list(unique(data$Year), # Build list with unique elements
-                    unique(data$Type),
-                    unique(data$TypeID),
-                    unique(data$Age),
-                    c("Male", "Female", "Total"))
-    names(db_info) <- c("year", "type", "region", "age", "sex") # Name list elements
+  db_info <- list(unique(data$Year),        # Build list with unique elements
+                  unique(data$Type),
+                  unique(data$TypeID),
+                  unique(data$Age),
+                  names(data)[-(1:4)]       # Assumes all Sex cols at end; c("Male", "Female", "Total")
+                  )
+  names(db_info) <- c("Year", "Type", "TypeID", "Age", "Sex") # Name list elements
 
-    return(db_info) # Return list structure
-  # } else
-  # if(db_ok == FALSE) {
-  #   stop("Error: one or more database checks failed.") # Throw error
-  # }
+  return(db_info)                           # Return list structure
 
 }
 
@@ -364,53 +368,67 @@ dbInfo <- function(db_path) {
 #'     values are "default", "long" or "wide". Default = "default".
 #' @param age_filter Filters ages based on input vector before returning data in requested format.
 #'     Must be a vector. Default = NULL.
+#' @param db_check Logical value whether to run \code{\link{dbCheck}} on data. Default = TRUE. This
+#'     should be set to FALSE only if specific database is known to be ok, or to troubleshoot database
+#'     errors other than column names (i.e., NOT database error 1a or 1b. That is, database must
+#'     have the 7 columns: Year, Type, TypeID, Age, Male, Female, and Total).
+#' @param full_BC Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
+#' do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+#' Default = TRUE.
 #' @return A data.frame object in the requested format.
 #' @examples
 #' dbRead(c("estimates", "HA", "19"), return_format = "wide", age_filter = c(0, 1, 2, 3, 4, -999))
 #' \dontrun{   dbRead("I://PopulationR/Database/Estimates/POPHAE19.csv", return_format = "wide",
 #'                    age_filter = c(0, 1, 2, 3, 4, -999))  }
+#' dbRead(c("births", "HA", "19"), db_check = FALSE)
 #' @family database access helpers
 #' @seealso Overall package documentation: \code{\link{dbutils}}()
 #' @author Sebastien Lavoie (formerly, BC Stats)
 #' @export
-dbRead <- function(db_path, return_format = "default", age_filter = NULL) {
-  if(length(db_path) == 1) { # User entered full path
-    data <- data.table::fread(db_path, header = TRUE, stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
-  } else if(length(db_path) == 3) { # Entered information for getDBPath
-    data <- data.table::fread(getDBPath(db_path[1], db_path[2], db_path[3]), header = TRUE, stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
-  } else { # Error unrecognized path type
+dbRead <- function(db_path, return_format = "default", age_filter = NULL, db_check = TRUE, full_BC = TRUE) {
+
+  if(length(db_path) == 1) {                # User entered full path
+    data <- data.table::fread(db_path, header = TRUE,
+                              stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
+  } else if(length(db_path) == 3) {         # Entered information for getDBPath
+    data <- data.table::fread(getDBPath(db_path[1], db_path[2], db_path[3]), header = TRUE,
+                              stringsAsFactors = FALSE, data.table = FALSE) # Read csv database data
+  } else {                                  # Error unrecognized path type
     stop("Error: Incorrect db_path format.")
   }
 
   # Arrange data by Year, ID, Age to ensure it's always the same
   data <- data %>% dplyr::arrange(Year, TypeID, Age)
 
-  if(!is.null(age_filter)) { # If age_filter is not null
-    data_ages <- unique(data$Age) # Vector of unique ages in database
-    for(i in age_filter) { # Check if ages in age_filter are actual ages in the database
-      if(!(i %in% data_ages)) { # At least one of the rquested ages is not in the database
+  if(!is.null(age_filter)) {                # If age_filter is not null
+    data_ages <- unique(data$Age)           # Vector of unique ages in database
+    for(i in age_filter) {             # Check if ages in age_filter are actual ages in the database
+      if(!(i %in% data_ages)) {        # At least one of the rquested ages is not in the database
         stop("Error: At least one of the age_filter ages is not in the database.") # Throw error
       }
     }
     data <- data %>% dplyr::filter(Age %in% age_filter) # Filter data with age_filter
   }
 
-  db_ok <- dbCheck(data, full_BC = TRUE)  # database check
+  if(db_check == TRUE) {
+    db_ok <- dbCheck(data, full_BC = full_BC)  # Database check
+  } else {
+    db_ok <- TRUE                              # Set as TRUE to bypass dbCheck
+  }
 
   if(db_ok == TRUE) {
-    if(return_format == "long") {  # long format requested
-      # data <- data %>% gather("Sex", "N", Male, Female, Total) # Gather value columns as their respective sex
-      data <- data %>% tidyr::pivot_longer(c(Male, Female, Total), names_to = "Sex", values_to = "N") # Gather value columns as their respective sex
-    } else if(return_format == "wide") { # Wide format requested
-      # data <- data %>% gather("Sex", "N", Male, Female, Total) %>% spread(Age, N)  # Gather value column as sex, spread ages
+    if(return_format == "long") {           # long format requested: gather value columns as Sex
+      data <- data %>% tidyr::pivot_longer(c(Male, Female, Total), names_to = "Sex", values_to = "N")
+    } else if(return_format == "wide") {    # wide format requested: gather value columns as Sex, spread Age
       data <- data %>% tidyr::pivot_longer(c(Male, Female, Total), names_to = "Sex", values_to = "N") %>%
-        tidyr::pivot_wider(names_from = Age, values_from = N)  # Gather value column as sex, spread ages
+        tidyr::pivot_wider(names_from = Age, values_from = N)
     } else if(return_format != "default") { # Unrecognized value
       stop("Error: incorrect return_format value. Argument must be default, long or wide.") # Throw error
     }
-    return(data)  # Return final data
-  } else if(db_ok == FALSE) {
-    stop("Error: one or more database checks failed. Run `dbutils::dbCheck()` for more information.") # Throw error
+    return(data)                            # Return final data
+  } else if(db_ok == FALSE) {               # Throw error
+    # stop("Error: one or more database checks failed. Run `dbutils::dbCheck()` for more information.")
+    warning("Error: one or more database checks failed. Run `dbutils::dbCheck()` for more information.")
   }
 
 }
@@ -446,6 +464,9 @@ dbRead <- function(db_path, return_format = "default", age_filter = NULL) {
 #' @param db_path Either vector of database type ("estimates", "projections", "births", "deaths"),
 #' region code and two-character year OR full path to database csv file.
 #' @param overwrite Whether to overwrite the file if a database already exists. Default = FALSE.
+#' @param full_BC Logical value whether the region covers all of BC. Those regions (e.g., CMAs) that
+#' do not cover all of BC have full_BC = FALSE, and their sum is not checked against the BC total.
+#' Default = TRUE.
 #' @examples
 #' \dontrun{ dbWrite(data, c("estimates", "CF", "19"), overwrite = FALSE) }
 #' \dontrun{ dbWrite(data, "I://PopulationR/Database/Estimates/POPCFE19.csv", overwrite = FALSE) }
@@ -453,31 +474,33 @@ dbRead <- function(db_path, return_format = "default", age_filter = NULL) {
 #' @seealso Overall package documentation: \code{\link{dbutils}}()
 #' @author Sebastien Lavoie (formerly, BC Stats)
 #' @export
-dbWrite <- function(db, db_path, overwrite = FALSE) {
+dbWrite <- function(db, db_path, overwrite = FALSE, full_BC = TRUE) {
 
-  db_ok <- dbCheck(db, full_BC = TRUE)  # database check
+  db_ok <- dbCheck(db, full_BC = full_BC)   # Database check
 
   if(db_ok == TRUE) {
-    if(length(db_path) == 1) {  # DB path is a full path
+    if(length(db_path) == 1) {              # DB path is a full path
       if(file.exists(db_path) == TRUE & overwrite == FALSE) {
         stop("Error: File exists and overwrite is FALSE.")
-      } else {
+      } else {                              # Write csv database data
         print(paste0("Saving file...", db_path))
-        data.table::fwrite(db, file = db_path, sep = ",") # Write csv database data
+        data.table::fwrite(db, file = db_path, sep = ",")
       }
-    } else if(length(db_path) == 3) { # DB path is type, region, year for getDBPath
+    } else if(length(db_path) == 3) {       # DB path is type, region, year for getDBPath
       db_path <- getDBPath(db_path[1], db_path[2], db_path[3])
       if (file.exists(db_path) == TRUE & overwrite == FALSE) {
         stop("Error: File exists and overwrite is FALSE.")
-      } else {
+      } else {                              # Write csv database data
         print(paste0("Saving file...", db_path))
-        data.table::fwrite(db, file = db_path, sep = ",") # Write csv database data
+        data.table::fwrite(db, file = db_path, sep = ",")
       }
-    } else { # Error unrecognized path
+    } else {                                # Error unrecognized path
       stop("Error: Incorrect db_path format.")
     }
-  } else if(db_ok == FALSE) {
-    stop("Error: one or more database checks failed. Run `dbutils::dbCheck()` for more information.") # Throw error
+  } else if(db_ok == FALSE) {               # Throw error
+    # stop("Error: one or more database checks failed. Run `dbutils::dbCheck()` for more information.")
+    warning("Error: one or more database checks failed. Run `dbutils::dbCheck()` for more information.")
   }
+
 }
 

@@ -17,13 +17,15 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 `r lifecycle::badge("experimental")`
+[![Lifecycle:Maturing](https://img.shields.io/badge/Lifecycle-Maturing-007EC6)](<Redirect-URL>)
 <!-- badges: end -->
 
-`dbutils` is a package of utility functions for processing and modifying BC Stats' population databases via three main categories:  
+`dbutils` is a package of utility functions for processing and modifying BC Stats' population databases via four main categories:  
 
 * database **access** functions (getDBPath, dbCheck, dbInfo, dbRead, dbWrite)  
 * **conversion** functions (conversionRead, dbConvert)  
 * **raking** functions (dbRake, raking helper functions)  
+* **app** function (updateAppData to update app data)  
 
 
 ## About

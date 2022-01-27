@@ -4,16 +4,17 @@
 # dbutils
 
 <!-- badges: start -->
-
+[![Lifecycle:Maturing](https://img.shields.io/badge/Lifecycle-Maturing-007EC6)](Redirect-URL)
 <!-- badges: end -->
 
 `dbutils` is a package of utility functions for processing and modifying
-BC Stats’ population databases via three main categories:
+BC Stats’ population databases via four main categories:
 
-  - database **access** functions (getDBPath, dbCheck, dbInfo, dbRead,
+-   database **access** functions (getDBPath, dbCheck, dbInfo, dbRead,
     dbWrite)  
-  - **conversion** functions (conversionRead, dbConvert)  
-  - **raking** functions (dbRake, raking helper functions)
+-   **conversion** functions (conversionRead, dbConvert)  
+-   **raking** functions (dbRake, raking helper functions)  
+-   **app** function (updateAppData to update app data)
 
 ## About
 
@@ -28,25 +29,25 @@ continuous (no year can be missing).
 There are several naming conventions used with such data, where files
 are named ***DDDRRTYY***:
 
-  - **DDD** is the demographic type, such as BIR = Birth, DEA = Death,
+-   **DDD** is the demographic type, such as BIR = Birth, DEA = Death,
     POP = Population, etc.  
-  - **RR** is the region code, such as:
-      - RD - Regional District, which is the same data as Census
+-   **RR** is the region code, such as:
+    -   RD - Regional District, which is the same data as Census
         Division (CD)  
-      - DR - Development region (DR)  
-      - HA - Local Heath Area (LHA)  
-      - HS - Health Service Delivera Area (HSDA)  
-      - HY - Health Authority (HA)  
-      - CH - Community Health Service Area (CHSA)  
-      - CF - Ministry of Children and Family Development (MCFD)  
-      - CA - MCFD Service Delivery Area (MCFD\_SDA)  
-      - CL - MCFD Local Service Area (MCFD\_LSA)  
-      - SD - School District (SD)  
-      - PS - College Region, or Post-Secondary (CR)  
-      - SR - Special Regions
-  - **T** is the data type, such as A = Actual, E = Estimates, O =
+    -   DR - Development region (DR)  
+    -   HA - Local Heath Area (LHA)  
+    -   HS - Health Service Delivera Area (HSDA)  
+    -   HY - Health Authority (HA)  
+    -   CH - Community Health Service Area (CHSA)  
+    -   CF - Ministry of Children and Family Development (MCFD)  
+    -   CA - MCFD Service Delivery Area (MCFD_SDA)  
+    -   CL - MCFD Local Service Area (MCFD_LSA)  
+    -   SD - School District (SD)  
+    -   PS - College Region, or Post-Secondary (CR)  
+    -   SR - Special Regions
+-   **T** is the data type, such as A = Actual, E = Estimates, O =
     Projections, P = Population  
-  - **YY** is the year (or two-digit PEOPLE version number, indicating
+-   **YY** is the year (or two-digit PEOPLE version number, indicating
     which PEOPLE run) you want data for
 
 For example, population data is saved as POPRREYY (population
@@ -71,7 +72,6 @@ Here is a very simple example which shows you how to use the `rounded`
 function:
 
 ``` r
-
 library(dbutils)
 
 round(12.5)
@@ -79,6 +79,7 @@ round(12.5)
 ## this gives 12, not necessarily what you might expect; hence, the rounded function
 
 ?rounded
+#> starting httpd help server ... done
 
 dbutils::rounded(12.5)
 #> [1] 13

@@ -614,6 +614,8 @@ noNegsnoMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps, R
   ## add random numbers as fractions to AdjCurrRow values (so AdjCurrRow will be considered first and random to break ties)
   upPower10 <- 10*(10^ceiling(log10(n_colGrps))) ## round up to the nearest power of 10
   CurrRow[6, 1] <- "AdjCurrRow + Random"
+  CurrRow <- CurrRow %>% dplyr::mutate(dplyr::across(-VarRow, ~ as.double(.x)))
+  CurrRow[6, 2:(n_colGrps+1)] <- CurrRow[6, 2:(n_colGrps+1)]
   CurrRow[6, 2:(n_colGrps+1)] <- CurrRow[3, 2:(n_colGrps+1)] + (CurrRow[5, 2:(n_colGrps+1)])/upPower10
 
   ## sort cells in descending order AdjCurrRow size, so adjustments always made to largest margins
@@ -980,26 +982,31 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #' true for most of the underlying assumptions and procedures in dbRake, is available on BC Stats'
 #' I drive (S152\\S52004) in \strong{Documentation > Raking > Methodology-Raking_Final.pdf}.
 #'
-#' @param InputData Name of .xlsx or .csv file that contains input data to be raked.
+#' @param InputData Name of database in environment that contains input data to be raked. If
+#' `readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to be read in.
 #' This file is assumed to have Region (e.g., LHA) by Sex (e.g., 1, 2, 3) as rows, and
-#' Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.
-#' @param CtrlPopTotals Name of .xlsx or .csv file that contains overall control totals
+#' Ages (e.g., 0, 1, 2, ..., TOTAL (not '-999')) as columns. Values are population counts.
+#' @param CtrlPopTotals Name of database in environment that contains overall control totals. If
+#' `readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to be read in
 #' (e.g., "BC AS TOTALS.xlsx"). This file is assumed to have Sex (e.g., 1, 2, 3) as rows and
-#' Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.
+#' Ages (e.g., 0, 1, 2, ..., TOTAL (not '-999')) as columns. Values are population counts.
 #' This file typically has dimensions of 3 (obs) by 103 variables.
-#' @param CtrlRegionTotals Name of .xlsx or .csv file that contains overall control totals
+#' @param CtrlRegionTotals Name of database in environment that contains overall control totals. If
+#' `readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to be read in
 #' (e.g., "LHA TOTALS.xlsx"). Default = NULL. This file is assumed to have Region (e.g., 89 LHAs)
 #' as the first column and TOTAL (population counts) as the second column; this file is not broken out
 #' by Sex or Age. This file typically has dimensions of n (obs) by 2 variables, where "n" is the
 #' number of individual regions (e.g., 89 for LHA). If no name is provided (i.e., NULL), then region
 #' control totals are not used. Instead, the InputData will be used to generate "control" totals.
-#' @param CtrlAgeGrpsTotals Name of .xlsx or .csv file that contains initial 5 year age group totals.
-#' Default = NULL. In virtually all cases, this variable will be NULL. In these cases, the InputData
-#' will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 10-14, etc).
-#' If age groups are of format -X1, -X2, ..., they will be transformed to "X-Y" format.
-#' @param VarRegion Name of Region variable in all files (e.g., "LHA")
-#' @param VarSex Name of Sex variable in all files (e.g., "Sex")
-#' @param VarSexTotal Value that corresponds to Total (e.g., 3, when 1 and 2 are Male and Female)
+#' @param CtrlAgeGrpsTotals Name of database in environment that contains initial 5 year age group
+#' totals. If `readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to
+#' be read in. Default = NULL. In virtually all cases, this variable will be NULL. In these cases,
+#' the InputData will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9,
+#' 10-14, etc). If age groups are of format -X1, -X2, ..., they will be transformed to "X-Y" format.
+#' @param VarRegion Name of Region variable in all files (e.g., "LHA").
+#' @param VarSex Name of Sex variable in all files (e.g., "Sex"). \strong{Note: Sex must be a
+#' numeric variable (e.g., 1,2,3) where the Total is the maximum number (e.g., 3.}
+#' @param VarSexTotal Value that corresponds to Total (e.g., 3, when 1 and 2 are Male and Female).
 #' @param AgeGrpMax Age of the older population that will be prorated and raked separately from
 #' other 5 year age groups. AgeGrpMax will include all ages, including itself, through the remainder
 #' of the population. Default = NULL. If AgeGrpMax is not set, the function will use 75 and up
@@ -1018,11 +1025,11 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
 #' folder. Regardless of whether saved or not, the raked data returns to R's environment. Setting
 #' to TRUE reduces a step (\code{\link{dbWrite}}). Setting to TRUE is not useful when raking
 #' multiple years of data, as the output file will be overwritten for each successive year. In that
-#' case, call the raking function from multiRake.
+#' case, call the raking function from \code{\link{multiRake}}.
 #' @param readFiles Logical value for whether or not input files (InputData, CtrlPopTotals,
 #' CtrlRegionTotals, CtrlAgeGrpsTotals) need to be read in. Default = FALSE. If FALSE, files are
 #' already in environment, likely by being called or created through another function (e.g.,
-#' \code{\link{dbConvert}}).
+#' \code{\link{dbConvert}}, \code{\link{dbRead}}).
 #' @return RakedData.csv will be saved to "outputs" folder (which will be created if one does not
 #' already exist). If set to TRUE, various interim files will be saved in an "interim_files" folder
 #' within "outputs". If set to TRUE, a log file ("raking_log.csv") will also be saved to the
@@ -1087,6 +1094,14 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## C2. read in region control totals, if they exist; set UseControlRegionTotals to TRUE or FALSE accordingly
     if(!is.null(CtrlRegionTotals)) {
       CtrlRegionTotals <- read.inputs(inputFile = CtrlRegionTotals)
+      if("Year" %in% names(CtrlRegionTotals)) {
+        if(length(unique(CtrlRegionTotals$Year)) != 1) {
+          stop("CtrlRegionTotals should have only one year of data. To rake over multiple years, use `multiRake()`.")
+        }
+        ## save Year variable and remove temporarily from data
+        yr_CtrlReg <- unique(CtrlRegionTotals$Year)
+        CtrlRegionTotals <- CtrlRegionTotals %>% dplyr::select(-Year)
+      }
       UseControlRegionTotals <- TRUE
     } else {
       UseControlRegionTotals <- FALSE
@@ -1095,6 +1110,14 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## C3. read in age control totals, if they exist; set have5yrAgeGrps to TRUE or FALSE accordingly
     if(!is.null(CtrlAgeGrpsTotals)) {
       CtrlAgeGrpsTotals <- read.inputs(inputFile = CtrlAgeGrpsTotals)
+      if("Year" %in% names(CtrlAgeGrpsTotals)) {
+        if(length(unique(CtrlAgeGrpsTotals$Year)) != 1) {
+          stop("CtrlAgeGrpsTotals should have only one year of data. To rake over multiple years, use `multiRake()`.")
+        }
+        ## save Year variable and remove temporarily from data
+        yr_CtrlAgeGrps <- unique(CtrlAgeGrpsTotals$Year)
+        CtrlAgeGrpsTotals <- CtrlAgeGrpsTotals %>% dplyr::select(-Year)
+      }
       have5yrAgeGrps <- TRUE
     } else {
       have5yrAgeGrps <- FALSE
@@ -1125,21 +1148,21 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
   ## C5. update raking_log, if required
   if(writeRakingLog == TRUE) {
+
     if(UseControlRegionTotals == TRUE) {
       ## add message to raking_log
       raking_log[nrow(raking_log)+1, 1] <- "Prep: 'UseControlRegionTotals' is set to TRUE because you named a Control Region Totals file."
     } else {
       raking_log[nrow(raking_log)+1, 1] <- "Prep: 'UseControlRegionTotals' is set to FALSE because you did not name a Control Region Totals file."
     }
-  }
 
-  if(writeRakingLog == TRUE) {
     if(have5yrAgeGrps == TRUE) {
       ## add message to raking_log
       raking_log[nrow(raking_log)+1, 1] <- "Prep: 'have5yrAgeGrps' is set to TRUE because you named a Control Age Totals file."
     } else {
       raking_log[nrow(raking_log)+1, 1] <- "Prep: 'have5yrAgeGrps' is set to FALSE because you did not name a Control Age Totals file."
     }
+
   }
 
   ## D. check for negative values if allowNegatives is FALSE
@@ -1154,7 +1177,43 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }
   }
 
-  ## E. rename negative column names as 5yr age groups where necessary
+  ## E. check for single Year of data
+  if("Year" %in% names(InputData)) {
+    if(length(unique(InputData$Year)) != 1) {
+      stop("InputData should have only one year of data. To rake over multiple years, use `multiRake()`.")
+    }
+    ## save Year variable and remove temporarily from data
+    yr_InputData <- unique(InputData$Year)
+    InputData <- InputData %>% dplyr::select(-Year)
+  }
+
+  if("Year" %in% names(CtrlPopTotals)) {
+    if(length(unique(CtrlPopTotals$Year)) != 1) {
+      stop("CtrlPopTotals should have only one year of data. To rake over multiple years, use `multiRake()`.")
+    }
+    yr_CtrlPop <- unique(CtrlPopTotals$Year)
+    CtrlPopTotals <- CtrlPopTotals %>% dplyr::select(-Year)
+  }
+
+  if(any(exists("yr_InputData"), exists("yr_CtrlPop"), exists("yr_CtrlReg"), exists("yr_CtrlAgeGrps"))) {
+    yrCheck <- paste(ls(pattern = "yr_"))
+    if(length(yrCheck) > 1) {
+      temp <- get(yrCheck[1])
+      for(i in 2:length(yrCheck)) {
+        if(temp != get(yrCheck[i])) { stop("The Year does not match in all files.") }
+      }
+      yr_OutputData <- temp
+      rm(i, temp)
+    } else { yr_OutputData <- yrCheck }
+    rm(yrCheck)
+
+    if(writeRakingLog == TRUE) {
+      ## add message to raking_log
+      raking_log[nrow(raking_log)+1, 1] <- "Prep: The 'Year' column has been temporarily removed from the data."
+    }
+  }
+
+  ## F. rename negative column names as 5yr age groups where necessary (this is why -999 MUST be called TOTAL)
   InputDataCols <- names(InputData)
   InputData <- rename.age.grps(data = InputData, VarRegion, VarSex)
   CtrlPopTotals <- rename.age.grps(data = CtrlPopTotals, VarRegion, VarSex)
@@ -1162,7 +1221,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     CtrlAgeGrpsTotals <- rename.age.grps(data = CtrlAgeGrpsTotals, VarRegion, VarSex)
   }
 
-  ## F. create OutputData from InputData, that will be updated with changes
+  ## G. create OutputData from InputData, that will be updated with changes
   OutputData <- InputData
 
   if(writeRakingLog == TRUE) {
@@ -1455,7 +1514,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## re-sort rows by InputData order
   rows_order <- InputData %>%
     dplyr::select(VarRegion = (which(names(InputData) == VarRegion)),
-           VarSex = (which(names(InputData) == VarSex))) %>%
+                  VarSex = (which(names(InputData) == VarSex))) %>%
     dplyr::mutate(row_order = dplyr::row_number())
   temp <- dplyr::left_join(temp, rows_order, by = c("VarRegion", "VarSex"))
   temp <- dplyr::arrange(temp, row_order)
@@ -1518,7 +1577,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }; rm(i)
     CtrlAgeGrpsTotals <- CtrlAgeGrpsTotals %>%
       dplyr::select(Sex, tidyselect::all_of(AgeGrps5Yr), tidyselect::all_of(ageLast), TOTAL)
-    attributes(CtrlAgeGrpsTotals$`0-4`) <- NULL  ## for some reason "0-4" may be named
+    if("0-4" %in% names(CtrlAgeGrpsTotals)) {
+      attributes(CtrlAgeGrpsTotals$`0-4`) <- NULL  ## for some reason "0-4" may be named
+    }
+
 
     ## create 5 year & maximum age groups **sample data**
     OutputData5 <- OutputData %>% dplyr::rename(Region = {{VarRegion}}, Sex = {{VarSex}})
@@ -1905,8 +1967,9 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## 2R. re-sort rows by InputData order
     rows_order <- InputData %>%
       dplyr::filter(Sex == CurrSex) %>%
-      dplyr::select(which(names(InputData) == VarRegion)) %>%
-      dplyr::rename(VarRow = which(names(InputData) == VarRegion)) %>%
+      dplyr::select(VarRow = which(names(InputData) == VarRegion)) %>%
+      # dplyr::select(which(names(InputData) == VarRegion)) %>%
+      # dplyr::rename(VarRow = which(names(InputData) == VarRegion)) %>%
       dplyr::mutate(row_order = dplyr::row_number(),
                     VarRow = as.character(VarRow))
     dataCols <- dplyr::left_join(dataCols, rows_order, by = "VarRow")
@@ -2144,7 +2207,9 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         }
 
         ## ensure all numbers are integers (i.e., no fractional people allowed)
-        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1] %>% dplyr::pull())
+        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+        # CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1] %>% dplyr::pull())
+        ## Error: no applicable method for 'pull' applied to an object of class "c('double', 'numeric')"
 
         ## replace actual data with adjusted data in CurrCol
         dataCols[ ,i] <- CurrCol[,-1]
@@ -2276,8 +2341,9 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## 3R. re-sort rows by InputData order
       rows_order <- InputData %>%
         dplyr::filter(Sex == CurrSex) %>%
-        dplyr::select(which(names(InputData) == VarRegion)) %>%
-        dplyr::rename(VarRow = which(names(InputData) == VarRegion)) %>%
+        dplyr::select(VarRow = which(names(InputData) == VarRegion)) %>%
+        # dplyr::select(which(names(InputData) == VarRegion)) %>%
+        # dplyr::rename(VarRow = which(names(InputData) == VarRegion)) %>%
         dplyr::mutate(row_order = dplyr::row_number(),
                       VarRow = as.character(VarRow))
       dataCols <- dplyr::left_join(dataCols, rows_order, by = "VarRow")
@@ -2384,7 +2450,8 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   # testCols2 <- sum(OutputData[OutputData$Sex == 2, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
   # testCols3 <- sum(OutputData[OutputData$Sex == 3, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
   ageSingleCols <- names(OutputData)[stringr::str_detect(names(OutputData), "-", negate = TRUE)]
-  ageSingleCols <- ageSingleCols[ageSingleCols != VarRegion & ageSingleCols != VarSex & ageSingleCols != "TOTAL"]
+  ageSingleCols <- ageSingleCols[ageSingleCols %in% -999:999]
+  # ageSingleCols <- ageSingleCols[ageSingleCols != VarRegion & ageSingleCols != VarSex & ageSingleCols != "TOTAL"] ## what if "Type" or other cols?
   testCols1 <- sum(OutputData[OutputData$Sex == 1, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]
   testCols2 <- sum(OutputData[OutputData$Sex == 2, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
   testCols3 <- sum(OutputData[OutputData$Sex == 3, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
@@ -2400,6 +2467,15 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   }
 
   if(all(c(testCols1, testCols2, testCols3, testRows, testCells) == TRUE)) {
+
+    ## add Year column if needed
+    if(exists("yr_OutputData")) {
+      OutputData <- OutputData %>% dplyr::mutate(Year = yr_OutputData) %>%
+        dplyr::select(Year, tidyselect::everything())
+      if(writeRakingLog == TRUE) {
+        message("The 'Year' column has been added back to the data.")
+      }
+    }
 
     if(writeOutputFile == TRUE) {
       ## write final (raked) output file
@@ -2434,6 +2510,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     readr::write_csv(OutputData, here::here("outputs", "RakedData_failed.csv"))
 
   }
+
   if(writeRakingLog == TRUE) {
     readr::write_csv(raking_log, here::here("outputs", "raking_log.csv"))
   }
@@ -2444,6 +2521,201 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
                 RakingLog = raking_log))
   } else {
     return(list(RakedData = OutputData))
+  }
+
+}
+
+
+#### multiRake ----
+#' Rake over multiple years
+#'
+#' The raking function, \code{\link{dbRake}}, will run for one year of data but the data often needs
+#' to be raked for more than one year. In \strong{multiRake}, arguments include \strong{Years} in
+#' the data, any \strong{censusYears} that should not be raked as these are generally considered
+#' definitive, name of \strong{InputData}, name of \strong{CtrlPopTotals}, either name of
+#' \strong{CtrlRegionTotals} or default of NULL, name of region variable in all data, and whether
+#' you want to change any arguments required by \code{\link{dbRake}}.
+#' This is a helper function used to run \code{\link{dbRake}} for multiple years.
+#'
+#' @param years Vector of all years in the data (e.g., Years = 2011:2020).
+#' @param censusYears Any year(s) that are a census year and should not be raked (e.g., 2011, 2016).
+#' Default is FALSE. If all years need to be raked, set as FALSE.
+#' @param InputData Name of .xlsx or .csv file that contains input data to be raked.
+#' This file is assumed to have Region (e.g., "TypeID", "CHSA") by Sex (e.g., 1, 2, 3) as rows, and
+#' Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.
+#' @param CtrlPopTotals Name of .xlsx or .csv file that contains overall control totals
+#' (e.g., "BC AS TOTALS.xlsx"). This file is assumed to have Sex (e.g., 1, 2, 3) as rows and
+#' Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.
+#' This file typically has dimensions of 3 (obs) by 103 variables.
+#' @param CtrlRegionTotals Name of .xlsx or .csv file that contains overall control totals
+#' (e.g., "CHSA TOTALS.xlsx"). Default = NULL. This file is assumed to have Region (e.g., 218 CHSAs)
+#' as the first column and TOTAL (population counts) as the second column; this file is not broken out
+#' by Sex or Age. This file typically has dimensions of n (obs) by 2 variables, where "n" is the
+#' number of individual regions (e.g., 218 for CHSA). If no name is provided (i.e., NULL), then region
+#' control totals are not used. Instead, the InputData will be used to generate "control" totals.
+#' @param VarRegion Name of Region variable in all files (e.g., "TypeID", "CHSA").
+#' @param change_rake_args Logical value whether any remaining raking argument defaults need to be
+#' changed. Default = FALSE. If set to TRUE, user will be asked to set the following arguments:
+#' \strong{CtrlAgeGrpsTotals} (default = NULL);
+#' \strong{VarSex} (otherwise pre-specified as "Sex");
+#' \strong{VarSexTotal} (otherwise pre-specified from data's column names);
+#' \strong{AgeGrpMax} (default = NULL which would trigger \code{\link{dbRake}} to use age 75 if
+#' exists; however, multiRake sets this to the strongly recommended age 75);
+#' \strong{allowNegatives} (default = FALSE, should only be TRUE for migration data);
+#' \strong{saveInterimFiles} (default = FALSE);
+#' \strong{writeOutputFile} (default = FALSE);
+#' \strong{writeRakingLog} (default = FALSE);
+#' \strong{readFiles} (default = FALSE which will use files already in environment; if files need
+#' to be read in, set to TRUE).
+#' @return RakedData.csv will be saved to "outputs" folder (which will be created if one does not
+#' already exist). If set to TRUE, various interim files will be saved in an "interim_files" folder
+#' within "outputs". If set to TRUE, a log file ("raking_log.csv") will also be saved to the
+#' "outputs" folder.
+#' @examples
+#' \dontrun{  ## if files need to be read in, set 'change_rake_args' to TRUE
+#'            multiRake(years = 2011:2020, censusYears = c(2011, 2016),
+#'                      InputData = "POPHAE19.xlsx", CtrlPopTotals = "BC AS TOTALS.xlsx",
+#'                      CtrlRegionTotals = "LHA TOTALS.xlsx", VarRegion = "LHA",
+#'                      change_rake_args = TRUE) }  ## two census years not to be raked
+#' \dontrun{  multiRake(years = 2012:2016, censusYears = FALSE,
+#'                      InputData = "POPHAE19.xlsx", CtrlPopTotals = "BC AS TOTALS.xlsx",
+#'                      CtrlRegionTotals = "LHA TOTALS.xlsx", VarRegion = "LHA",
+#'                      change_rake_args = FALSE) }   ## all years need to be raked
+#' @family raking helpers
+#' @seealso The overall raking function: \code{\link{dbRake}}()
+#' @author Julie Hawkins, BC Stats
+#' @export
+multiRake <- function(years, censusYears = FALSE, InputData, CtrlPopTotals, CtrlRegionTotals = NULL,
+                      VarRegion, change_rake_args = FALSE) {
+
+  ## PREP ----
+
+  ## 1. get/set raking arguments
+  if(change_rake_args == TRUE) {
+    ## ask user for raking arguments
+    message("You set change_raking_args to TRUE. Please set them now. What do you want to use for: ")
+    CtrlAgeGrpsTotals <- readline(prompt = "CtrlAgeGrpsTotals: (NULL or name of .xlsx or .csv file of initial 5 year age group totals.) ");
+    VarSex <- readline(prompt = "VarSex: (Name of Sex variable in database) ");
+    VarSexTotal <- readline(prompt = "VarSexTotal: (Value of Sex Total (e.g., 3)) ")
+    AgeGrpMax <- readline(prompt = "AgeGrpMax: (NULL or an age ending in 0 or 5; recommend 75) ")
+    allowNegatives <- readline(prompt = "allowNegatives: (TRUE or FALSE) ")
+    saveInterimFiles <- readline(prompt = "saveInterimFiles: (TRUE or FALSE) ")
+    writeOutputFile <- readline(prompt = "writeOutputFile: (TRUE or FALSE) ")
+    writeRakingLog <- readline(prompt = "writeRakingLog: (TRUE or FALSE) ")
+    readFiles <- readline(prompt = "readFiles: (TRUE or FALSE) ")
+  } else {
+    ## set raking arguments (use dbRake() defaults)
+    CtrlAgeGrpsTotals <- NULL
+    VarSex <- "Sex"
+    VarSexTotal <- length(unique(InputData$Sex))
+    AgeGrpMax <- 75
+    allowNegatives <- FALSE
+    saveInterimFiles <- FALSE
+    writeOutputFile <- FALSE
+    writeRakingLog <- FALSE
+    readFiles <- FALSE
+  }
+
+  ## 2. if any year(s) should not be raked (i.e., definitive census years), remove them
+  if(length(censusYears) == 1) {
+    if(censusYears == FALSE) {
+      years_rake <- years
+    } else {
+      years_rake <- years[!years %in% censusYears]
+    }
+  } else if(length(censusYears) > 1) {
+    years_rake <- years[!years %in% censusYears]
+  }
+
+  ## 3. create lists to hold raked data and log for each year being iterated
+  raked_all <- vector(mode = "list", length = length(years_rake))
+  raking_log_all <- vector(mode = "list", length = length(years_rake))
+
+
+  ## RAKING ----
+
+  ## 4. iterate dbRake over years_rake
+  for(yr in seq_along(years_rake)) {
+
+    ## get years_rake[yr]'s input data and population control totals
+    data_to_rake <- InputData %>% dplyr::filter(Year == years_rake[yr]) %>% dplyr::select(-Year)
+    control_totals <- CtrlPopTotals %>% dplyr::filter(Year == years_rake[yr]) %>% dplyr::select(-Year)
+
+    ## get years_rake[yr]'s region control totals, as specified
+    if(!is.null(CtrlRegionTotals)) {
+      ctrl_reg_totals <- CtrlRegionTotals %>% dplyr::filter(Year == years_rake[yr]) %>% dplyr::select(-Year)
+    } else {
+      ctrl_reg_totals <- NULL
+    }
+
+    ## print message of Year being raked, and rake that year
+    message(paste0("Year ", years_rake[yr]))
+
+    raked <- dbutils::dbRake(InputData = data_to_rake, CtrlPopTotals = control_totals,
+                             CtrlRegionTotals = ctrl_reg_totals, CtrlAgeGrpsTotals,
+                             VarRegion, VarSex, VarSexTotal, AgeGrpMax, allowNegatives,
+                             saveInterimFiles, writeRakingLog, writeOutputFile, readFiles)
+
+    ## add raked data to list
+    raked_all[[yr]] <- raked[["RakedData"]]
+
+    if(writeRakingLog == TRUE) {  raking_log_all[[yr]] <- raked[["RakingLog"]]  }
+
+    rm(data_to_rake, control_totals, ctrl_reg_totals, raked)
+
+  }
+
+
+  ## FORMATTING ----
+
+  ## 5a. add back Year, merge all Years of now-raked data
+  data_done <- purrr::map(.x = 1:length(years_rake), ~ dplyr::mutate(raked_all[[.]], Year = years_rake[.x]))
+  data_done <- purrr::map_dfr(.x = 1:length(years_rake), ~ dplyr::bind_rows(data_done[[.]])) %>%
+    dplyr::select(Year, tidyselect::everything())
+
+  ## 5b. if any year(s) were not raked (i.e., definitive census years), add them to raked data
+  if(length(censusYears) == 1) {
+    if(censusYears != FALSE) {
+      data_done <- dplyr::bind_rows(data_done, InputData %>% dplyr::filter(Year %in% censusYears))
+    }
+  } else if(length(censusYears) > 1) {
+    data_done <- dplyr::bind_rows(data_done, InputData %>% dplyr::filter(Year %in% censusYears))
+  }
+
+  ## 6. sort final data
+  data_done <- data_done %>% dplyr::arrange(Year, Sex, TypeID)
+
+  ## 7. combine and write raking log, if specified
+  if(writeRakingLog == TRUE) {
+    raking_log <- purrr::map(.x = 1:length(years_rake), ~ dplyr::mutate(raking_log_all[[.]], Year = years_rake[.x]))
+    raking_log <- purrr::map_dfr(.x = 1:length(years_rake), ~ dplyr::bind_rows(raking_log[[.]])) %>%
+      dplyr::select(Year, message)
+
+    ## if any year(s) were not raked (i.e., definitive census years), add message(s) to log
+    if(length(censusYears) == 1) {
+      if(censusYears != FALSE) {
+        temp <- data.frame(Year = censusYears, message = "Data was not asked to be raked.",
+                           stringsAsFactors = FALSE)
+        raking_log <- dplyr::bind_rows(raking_log, temp) %>% dplyr::arrange(Year); rm(temp)
+      }
+    } else if(length(censusYears) > 1) {
+      temp <- data.frame(Year = censusYears, message = "Data was not asked to be raked.",
+                         stringsAsFactors = FALSE)
+      raking_log <- dplyr::bind_rows(raking_log, temp) %>% dplyr::arrange(Year); rm(temp)
+    }
+
+
+    ## write log to outputs folder
+    readr::write_csv(raking_log, here::here("outputs", "raking_log.csv"))
+  }
+
+
+  ## OUTPUT ----
+  if(writeRakingLog == TRUE) {
+    return(list(RakedData = data_done,
+                RakingLog = raking_log))
+  } else {
+    return(list(RakedData = data_done))
   }
 
 }

@@ -1,7 +1,7 @@
 Package: dbutils
 Title: Utility functions to process and modify BC Stats' population databases
 Version: 0.0.0.9000
-Date: 2021-04-30
+Date: 2022-03-18
 Authors@R: 
     c(person(given = "Julie", family = "Hawkins", role = c("aut", "cre"),
            email = "Julie.Hawkins@gov.bc.ca"),
@@ -13,7 +13,7 @@ Description: Includes database utility functions for the BC Stats population sec
 License: Apache License (>= 2.0)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Imports:
     data.table,
     dplyr,

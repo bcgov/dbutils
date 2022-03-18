@@ -4,7 +4,7 @@
 \alias{rename.age.grps}
 \title{Rename negative columns as 5 year age groups}
 \usage{
-rename.age.grps(data, VarRegion, VarSex)
+\method{rename}{age.grps}(data, VarRegion, VarSex)
 }
 \arguments{
 \item{data}{A dataset with -X1, -X2, -X3, ... column names}
@@ -28,6 +28,7 @@ Other raking helpers:
 \code{\link{add.random.fraction.to.cols}()},
 \code{\link{allowNegsnoMargin}()},
 \code{\link{calc.cols}()},
+\code{\link{multiRake}()},
 \code{\link{noNegsneedMargin}()},
 \code{\link{noNegsnoMargin}()},
 \code{\link{prep.prorate.col}()},

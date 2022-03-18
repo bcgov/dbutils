@@ -169,37 +169,30 @@ conversionRead <- function(conv_path) {
 #' @param years Vector of one or more years to be included in the converted destination data.
 #' Default = NULL. If NULL, the function will convert for all years in the source data.
 #' @param rake Whether raking is required (default) or not. Default = TRUE.
+#' While the \code{\link{dbRake}} function requires InputData and CtrlPopTotals (either already
+#' in the environment or to be read in from an "inputs" folder), `dbConvert` will create these
+#' from "db" and the conversion table, so does not these arguments specified.
 #' @param change_rake_args Logical value whether raking argument defaults need to be changed.
 #' Default = FALSE. If set to TRUE, user will be asked to set the following arguments:
-#' \strong{CtrlAgeGrpsTotals} (default = NULL);
-#' \strong{VarRegion} (otherwise pre-specified as From geography found in name of the conversion
+#' \itemize{
+#'   \item \strong{CtrlAgeGrpsTotals} (default = NULL);
+#'   \item \strong{VarRegion} (otherwise pre-specified as From geography found in name of the conversion
 #' table, e.g., HA);
-#' \strong{VarSex} (otherwise pre-specified as "Sex");
-#' \strong{VarSexTotal} (otherwise pre-specified from data's column names);
-#' \strong{AgeGrpMax} (default = NULL which would trigger \code{\link{dbRake}} to use age 75 if
+#'   \item \strong{VarSex} (otherwise pre-specified as "Sex");
+#'   \item \strong{VarSexTotal} (otherwise pre-specified from data's column names);
+#'   \item \strong{AgeGrpMax} (default = NULL which would trigger \code{\link{dbRake}} to use age 75 if
 #' exists; however, dbConvert sets this to the strongly recommended age 75);
-#' \strong{allowNegatives} (default = FALSE, should only be TRUE for migration data);
-#' \strong{saveInterimFiles} (default = FALSE);
-#' \strong{writeOutputFile} (default = FALSE);
-#' \strong{writeRakingLog} (default = FALSE).
+#'   \item \strong{allowNegatives} (default = FALSE, should only be TRUE for migration data);
+#'   \item \strong{saveInterimFiles} (default = FALSE);
+#'   \item \strong{writeOutputFile} (default = FALSE);
+#'   \item \strong{writeRakingLog} (default = FALSE).
+#' }
+#' Regardless of `change_rake_args` value, \code{\link{dbRake}}'s argument `readFiles` will be
+#' set to FALSE because the \strong{input files will be created during the conversion process}.
 #' @param full_BC Logical value whether the region covers all of BC. Default = TRUE. Those regions
-#' (e.g., VI, CMAs) that do not cover all of BC have full_BC = FALSE, and their sum is not checked
-#' against the BC total. As well, during conversion, source geographies not included in the
+#' (e.g., VI, CMAs) that do not cover all of BC should have full_BC = FALSE, and their sum is not
+#' checked against the BC total. As well, during conversion, source geographies not included in the
 #' destination geographies are dropped from the From and To working datafiles.
-#'
-#' Regardless of `change_rake_args`'s value, \code{\link{dbRake}}'s argument `readFiles` will be
-#' set to FALSE because the input files will be created during the conversion process.
-# @param control_totals Name of .xlsx or .csv file that contains overall control totals
-# (e.g., "BC AS TOTALS.xlsx") to be used in \code{\link{dbRake}} for argument "CtrlPopTotals".
-# This file is assumed to have Sex (e.g., 1, 2, 3) as rows and Ages (e.g., 0, 1, 2, ..., TOTAL) as
-# columns. Values are population counts. This file typically has dimensions of 3 (obs) by 103 variables.
-# @param region_totals Name of .xlsx or .csv file that contains overall control totals
-# (e.g., "LHA TOTALS.xlsx") to be used in \code{\link{dbRake}} for argument "CtrlRegionTotals".
-# Default = NULL. This file is assumed to have Region (e.g., 89 LHAs) as the first column and
-# TOTAL (population counts) as the second column; this file is not broken out by Sex or Age. This
-# file typically has dimensions of n (obs) by 2 variables, where "n" is the number of individual
-# regions (e.g., 89 for LHA). If no name is provided (i.e., NULL), then region control totals are
-# not used. Instead, the InputData will be used to generate "control" totals.
 #' @return Database converted from source to destination geography. If not all allocations were 100,
 #' (i.e., some splits < 100), then raking was also done (unless explicitly set to FALSE). Note that
 #' Age can be a positive age (e.g., 0, 1, 2, ...), a 5-year age group (e.g., 0-4) or TOTAL.

@@ -21,32 +21,37 @@ dbRake(
 )
 }
 \arguments{
-\item{InputData}{Name of .xlsx or .csv file that contains input data to be raked.
+\item{InputData}{Name of database in environment that contains input data to be raked. If
+`readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to be read in.
 This file is assumed to have Region (e.g., LHA) by Sex (e.g., 1, 2, 3) as rows, and
-Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.}
+Ages (e.g., 0, 1, 2, ..., TOTAL (not '-999')) as columns. Values are population counts.}
 
-\item{CtrlPopTotals}{Name of .xlsx or .csv file that contains overall control totals
+\item{CtrlPopTotals}{Name of database in environment that contains overall control totals. If
+`readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to be read in
 (e.g., "BC AS TOTALS.xlsx"). This file is assumed to have Sex (e.g., 1, 2, 3) as rows and
-Ages (e.g., 0, 1, 2, ..., TOTAL) as columns. Values are population counts.
+Ages (e.g., 0, 1, 2, ..., TOTAL (not '-999')) as columns. Values are population counts.
 This file typically has dimensions of 3 (obs) by 103 variables.}
 
-\item{CtrlRegionTotals}{Name of .xlsx or .csv file that contains overall control totals
+\item{CtrlRegionTotals}{Name of database in environment that contains overall control totals. If
+`readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to be read in
 (e.g., "LHA TOTALS.xlsx"). Default = NULL. This file is assumed to have Region (e.g., 89 LHAs)
 as the first column and TOTAL (population counts) as the second column; this file is not broken out
 by Sex or Age. This file typically has dimensions of n (obs) by 2 variables, where "n" is the
 number of individual regions (e.g., 89 for LHA). If no name is provided (i.e., NULL), then region
 control totals are not used. Instead, the InputData will be used to generate "control" totals.}
 
-\item{CtrlAgeGrpsTotals}{Name of .xlsx or .csv file that contains initial 5 year age group totals.
-Default = NULL. In virtually all cases, this variable will be NULL. In these cases, the InputData
-will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9, 10-14, etc).
-If age groups are of format -X1, -X2, ..., they will be transformed to "X-Y" format.}
+\item{CtrlAgeGrpsTotals}{Name of database in environment that contains initial 5 year age group
+totals. If `readFiles` is TRUE, this is the name of the .xlsx or .csv in the "inputs" folder to
+be read in. Default = NULL. In virtually all cases, this variable will be NULL. In these cases,
+the InputData will be used to generate "control" totals at 5-year groupings (e.g., 0-4, 5-9,
+10-14, etc). If age groups are of format -X1, -X2, ..., they will be transformed to "X-Y" format.}
 
-\item{VarRegion}{Name of Region variable in all files (e.g., "LHA")}
+\item{VarRegion}{Name of Region variable in all files (e.g., "LHA").}
 
-\item{VarSex}{Name of Sex variable in all files (e.g., "Sex")}
+\item{VarSex}{Name of Sex variable in all files (e.g., "Sex"). \strong{Note: Sex must be a
+numeric variable (e.g., 1,2,3) where the Total is the maximum number (e.g., 3.}}
 
-\item{VarSexTotal}{Value that corresponds to Total (e.g., 3, when 1 and 2 are Male and Female)}
+\item{VarSexTotal}{Value that corresponds to Total (e.g., 3, when 1 and 2 are Male and Female).}
 
 \item{AgeGrpMax}{Age of the older population that will be prorated and raked separately from
 other 5 year age groups. AgeGrpMax will include all ages, including itself, through the remainder
@@ -70,12 +75,12 @@ Default = FALSE. If TRUE, the final raked data will be saved as "RakedData.csv" 
 folder. Regardless of whether saved or not, the raked data returns to R's environment. Setting
 to TRUE reduces a step (\code{\link{dbWrite}}). Setting to TRUE is not useful when raking
 multiple years of data, as the output file will be overwritten for each successive year. In that
-case, call the raking function from multiRake.}
+case, call the raking function from \code{\link{multiRake}}.}
 
 \item{readFiles}{Logical value for whether or not input files (InputData, CtrlPopTotals,
 CtrlRegionTotals, CtrlAgeGrpsTotals) need to be read in. Default = FALSE. If FALSE, files are
 already in environment, likely by being called or created through another function (e.g.,
-\code{\link{dbConvert}}).}
+\code{\link{dbConvert}}, \code{\link{dbRead}}).}
 }
 \value{
 RakedData.csv will be saved to "outputs" folder (which will be created if one does not

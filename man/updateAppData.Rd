@@ -4,13 +4,13 @@
 \alias{updateAppData}
 \title{Update population app data}
 \usage{
-updateAppData(dbType, dbYear = NULL, RegionTypes = "default", RegionNamesFile)
+updateAppData(dbType, dbYear, RegionTypes = "default", RegionNamesFile)
 }
 \arguments{
 \item{dbType}{Type of database being written. Possible values are "estimates" or "projections".}
 
 \item{dbYear}{Two-digit year of the data being saved. Based on July 1st reference date,
-as character. Default = NULL.}
+as character.}
 
 \item{RegionTypes}{A dataframe with two character columns: ID and Region.Type. Default = "default"
 which internally sets ID and Region.Type as follows:
@@ -60,11 +60,13 @@ open app.R to deploy the updated app. (The popApp and popProjApp Rprojects are a
 'I:/PEOPLEPROJECTIONS/00 - R_code/shiny_apps/Production/'.)
 }
 \examples{
-updateAppData(dbType = "estimates", dbYear = "19", RegionTypes = data.frame(ID = c("RD", "DR"),
-   Region.Type = c("Regional District", "Development Region"), stringsAsFactors = FALSE),
-   RegionNamesFile = "Lookup_Region_Names.csv")
+\dontrun{  updateAppData(dbType = "estimates", dbYear = "19",
+                         RegionTypes = data.frame(ID = c("RD", "DR"),
+                                       Region.Type = c("Regional District", "Development Region"),
+                                       stringsAsFactors = FALSE),
+                         RegionNamesFile = "Lookup_Region_Names.csv")  }
 \dontrun{  updateAppData(dbType = "projections", dbYear = "19", RegionTypes = "default",
-     RegionNamesFile = "Lookup_Region_Names.csv")  }
+                         RegionNamesFile = "Lookup_Region_Names.csv")  }
 }
 \seealso{
 Overall package documentation: \code{\link{dbutils}}()

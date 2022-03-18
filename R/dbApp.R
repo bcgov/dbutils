@@ -32,7 +32,7 @@
 #'
 #' @param dbType Type of database being written. Possible values are "estimates" or "projections".
 #' @param dbYear Two-digit year of the data being saved. Based on July 1st reference date,
-#' as character. Default = NULL.
+#' as character.
 #' @param RegionTypes A dataframe with two character columns: ID and Region.Type. Default = "default"
 #' which internally sets ID and Region.Type as follows:
 #' \itemize{
@@ -52,15 +52,17 @@
 #' Region.Name is the text version of the Region (e.g., "British Columbia" for Region 0), and Gender
 #' is the first initial of the gender values (e.g., M, F, T). Data type is either projections or estimates.
 #' @examples
-#' updateAppData(dbType = "estimates", dbYear = "19", RegionTypes = data.frame(ID = c("RD", "DR"),
-#'    Region.Type = c("Regional District", "Development Region"), stringsAsFactors = FALSE),
-#'    RegionNamesFile = "Lookup_Region_Names.csv")
+#' \dontrun{  updateAppData(dbType = "estimates", dbYear = "19",
+#'                          RegionTypes = data.frame(ID = c("RD", "DR"),
+#'                                        Region.Type = c("Regional District", "Development Region"),
+#'                                        stringsAsFactors = FALSE),
+#'                          RegionNamesFile = "Lookup_Region_Names.csv")  }
 #' \dontrun{  updateAppData(dbType = "projections", dbYear = "19", RegionTypes = "default",
-#'      RegionNamesFile = "Lookup_Region_Names.csv")  }
+#'                          RegionNamesFile = "Lookup_Region_Names.csv")  }
 # @family app helpers
 #' @seealso Overall package documentation: \code{\link{dbutils}}()
 #' @export
-updateAppData <- function(dbType, dbYear = NULL, RegionTypes = "default", RegionNamesFile) {
+updateAppData <- function(dbType, dbYear, RegionTypes = "default", RegionNamesFile) {
 
   ## if using default RegionTypes, create here (else, add in via RegionTypes argument)
   if(RegionTypes == "default") {

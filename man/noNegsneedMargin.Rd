@@ -56,6 +56,7 @@ Other raking helpers:
 \code{\link{add.random.fraction.to.cols}()},
 \code{\link{allowNegsnoMargin}()},
 \code{\link{calc.cols}()},
+\code{\link{multiRake}()},
 \code{\link{noNegsnoMargin}()},
 \code{\link{prep.prorate.col}()},
 \code{\link{prorate.col}()},

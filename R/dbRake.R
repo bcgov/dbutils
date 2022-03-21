@@ -151,7 +151,7 @@ real.to.int <- function(realNums) {
 #' and again before raking), and finally in Part 3 to update initial single year of age estimates
 #' by Sex (before prorating rows, and again before raking).
 #'
-#' @param data a dataframe of inital population counts that need to be adjusted to control totals
+#' @param data a dataframe of initial population counts that need to be adjusted to control totals
 #' (e.g., columns: a region variable ("VarRow"), 1 (for Males), 2 (for Females))
 #' @param temp a dataframe of control totals to adjust data to (e.g., region control totals)
 #' @param VarRow the name of the variable to join temp to data (e.g., VarRow for "LHA")
@@ -338,7 +338,7 @@ prorate.col <- function(CurrCol, n_rowGrps, allowNegatives) {
 #'
 #' Add a random number to a specified column, "my_col", then sort rows based on my_col, with the
 #' random fraction used to break any ties. This is a helper function used in \code{\link{dbRake}}
-#' withiin the raking algorithm functions (\code{\link{allowNegsnoMargin}}, \code{\link{noNegsnoMargin}},
+#' within the raking algorithm functions (\code{\link{allowNegsnoMargin}}, \code{\link{noNegsnoMargin}},
 #' and \code{\link{noNegsneedMargin}}), when there are more than two row groups (e.g., Regions, 5-year
 #' Age Groups, Ages, more than two sexes (when Stats Can adds more than Male and Female)).
 #'
@@ -1060,7 +1060,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   #### 0. Prep ----
 
   ## A. check for required folder(s); create if needed and doesn't exist
-  # if(!file.exists(here::here("outputs"))) {
   if(any(writeOutputFile == TRUE, saveInterimFiles == TRUE, writeRakingLog == TRUE) &
      !file.exists(here::here("outputs"))) {
     dir.create(here::here("outputs"))
@@ -1617,9 +1616,9 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## if AgeGrpMax does not yet exist, set as 75+
     AgeGrpMax <- 75
     ## if age 75 does not exist (e.g., birth data), get max age group (second-to-last column name)
-    if(!(75 %in% names(InputData))) {                   # if(!(75 %in% names(CtrlAgeGrpsTotals))) {
+    if(!(75 %in% names(InputData))) {
       ## otherwise use what was set in raking arguments
-      AgeGrpMax <- names(InputData)[ncol(InputData)-1]  # AgeGrpMax <- names(CtrlAgeGrpsTotals)[ncol(CtrlAgeGrpsTotals)-1]
+      AgeGrpMax <- names(InputData)[ncol(InputData)-1]
     }
   } else {
     ## check that AgeGrpMax is beginning of a 5YrGrp; if not, have user re-set the value
@@ -1698,10 +1697,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
     ## prep for prorating AgeGrpsOldest columns
     temp <- data[data$VarRow == "Ctrl_TOTAL", c("VarRow", AgeGrpsOldest)]
-    # temp: 1 obs, 7 vars, with Ctrl_TOTALs for age groups: "VarRow" 75-79" "80-84"  "85-89"  "90-94"  "95-99"  "100"
+    # temp: 1 obs, 7 vars, with Ctrl_TOTALs for age groups: "VarRow" "75-79" "80-84"  "85-89"  "90-94"  "95-99"  "100"
     MaxAge <- prep.prorate.col(data, n_rowGrps, colGrps = c("VarRow", AgeGrpsOldest),
                                ctrl_total_row = temp, AgeGrpMax, ageLast)
-    # MaxAge: 93 obs (89 LHAs, Sum row, Ctrl_TOTAL row, Diff row, adj_value row) of 7 vars
+    # MaxAge: obs = each region + 4 (Sum row, Ctrl_TOTAL row, Diff row, adj_value row) of 7 vars
 
     ## call prorate function; ensure all numbers are integers (i.e., no fractional people allowed)
     for (i in 2:ncol(MaxAge)) {
@@ -1988,7 +1987,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## 2T. update OutputData5 with changes for this CurrSex and save as interim file
     n_colGrps <- n_AgeGrps
 
-
     ## get just data rows (and data and Sum columns)
     temp <- dataCols[1:n_rowGrps,]
 
@@ -2037,10 +2035,12 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## 2V. sum all Sexes to get updated total Sex values
   TotalSex <- OutputData5 %>% dplyr::filter(Sex == 1)  ## initiate with first Sex value
   counter <- 2                                  ## set counter to second Sex value
+  ageGrpCols <- unique(c(AgeGrps5Yr, ageLast, "TOTAL"))
   while(counter < VarSexTotal) {
     ## in case there are more than 2 non-total sexes
     temp <- OutputData5 %>% dplyr::filter(Sex == counter)
-    TotalSex[, -1] <- TotalSex[, -1] + temp[, -1]  ## sum all (even Sex) but Region
+    # TotalSex[, -1] <- TotalSex[, -1] + temp[, -1]  ## sum all (even Sex) but Region
+    TotalSex[, ageGrpCols] <- TotalSex[, ageGrpCols] + temp[, ageGrpCols]  ## for all age groups, sum this sex in
     rm(temp)
     counter <- counter + 1
     TotalSex$Sex <- counter     ## needed for when there are more than 2 non-total Sexes (e.g., 1+2+3 != 4)
@@ -2417,10 +2417,13 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## 3V. sum all Sexes to get updated total Sex values
   TotalSex <- OutputData %>% dplyr::filter(Sex == 1)  ## initiate with first Sex value
   counter <- 2                                 ## set counter to second Sex value
+  ageSingleCols <- names(OutputData)[stringr::str_detect(names(OutputData), "-", negate = TRUE)]
+  ageSingleCols <- ageSingleCols[ageSingleCols %in% -999:999]
   while(counter < VarSexTotal) {
     ## in case there are more than 2 non-total sexes
     temp <- OutputData %>% dplyr::filter(Sex == counter)
-    TotalSex[, -1] <- TotalSex[, -1] + temp[, -1]  ## sum all (even Sex) but Region
+    # TotalSex[, -1] <- TotalSex[, -1] + temp[, -1]  ## sum all (even Sex) but Region
+    TotalSex[, c(ageSingleCols, "TOTAL")] <- TotalSex[, c(ageSingleCols, "TOTAL")] + temp[, c(ageSingleCols, "TOTAL")]  ## for all age groups, sum this sex in
     rm(temp)
     counter <- counter + 1
     TotalSex$Sex <- counter     ## needed for when there are more than 2 non-total Sexes (e.g., 1+2+3 != 4)
@@ -2446,15 +2449,13 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## any(OutputData < 0)   ## need FALSE if allowNegatives = FALSE
   ## all(OutputData >= 0)  ## need TRUE if allowNegatives = FALSE
   ### *************************************************************************************** ###
-  # testCols1 <- sum(OutputData[OutputData$Sex == 1, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]
-  # testCols2 <- sum(OutputData[OutputData$Sex == 2, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
-  # testCols3 <- sum(OutputData[OutputData$Sex == 3, 3:(n_Ages+2)]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
-  ageSingleCols <- names(OutputData)[stringr::str_detect(names(OutputData), "-", negate = TRUE)]
-  ageSingleCols <- ageSingleCols[ageSingleCols %in% -999:999]
-  # ageSingleCols <- ageSingleCols[ageSingleCols != VarRegion & ageSingleCols != VarSex & ageSingleCols != "TOTAL"] ## what if "Type" or other cols?
-  testCols1 <- sum(OutputData[OutputData$Sex == 1, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]
-  testCols2 <- sum(OutputData[OutputData$Sex == 2, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]
-  testCols3 <- sum(OutputData[OutputData$Sex == 3, ageSingleCols]) == CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]
+  # ageSingleCols <- names(OutputData)[stringr::str_detect(names(OutputData), "-", negate = TRUE)]
+  # ageSingleCols <- ageSingleCols[ageSingleCols %in% -999:999]
+  testCols <- vector(length = 0)
+  for(i in seq_along(Sexes)) {
+    testCols[i] <- sum(OutputData[OutputData$Sex == Sexes[i], ageSingleCols]) ==
+      CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == Sexes[i]]
+  }; rm(i)
   testRows <- all((OutputData$TOTAL[OutputData$Sex == VarSexTotal] == CtrlRegionTotals$TOTAL) == TRUE)
   if(allowNegatives == FALSE & any(OutputData < 0) == FALSE) {
     testCells <- TRUE
@@ -2466,7 +2467,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }
   }
 
-  if(all(c(testCols1, testCols2, testCols3, testRows, testCells) == TRUE)) {
+  if(all(c(testCols, testRows, testCells) == TRUE)) {
 
     ## add Year column if needed
     if(exists("yr_OutputData")) {
@@ -2487,23 +2488,31 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       # add message to raking_log
       raking_log[nrow(raking_log)+1, 1] <- "SUCCESS. Data has been successfully raked."
     }
-    rm(testCols1, testCols2, testCols3, testRows, testCells)
+    rm(testCols, testRows, testCells)
     rm(CurrSex, TotalSex, counter, age)
 
   } else {
 
     if(writeRakingLog == TRUE) {
       raking_log[nrow(raking_log)+1, 1] <- "FAIL. Something has gone wrong. Check tests."
-      if(testCols1 == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("The sum of raked columns in Sex 1 does not match Population Control Total.") }
-      if(testCols2 == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("The sum of raked columns in Sex 2 does not match Population Control Total.") }
-      if(testCols3 == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("The sum of raked columns in Sex 3 does not match Population Control Total.") }
+      for(i in seq_along(testCols)){
+        if(testCols[i] == FALSE) { raking_log[nrow(raking_log)+1, 1] <-
+          paste0("The sum of raked columns in Sex ", i, " does not match Population Control Total.") }
+      }
+      # if(testCols1 == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("The sum of raked columns in Sex 1 does not match Population Control Total.") }
+      # if(testCols2 == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("The sum of raked columns in Sex 2 does not match Population Control Total.") }
+      # if(testCols3 == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("The sum of raked columns in Sex 3 does not match Population Control Total.") }
       if(testRows == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("One or more rows do not sum to its/their Region Control Total(s).") }
       if(testCells == FALSE) { raking_log[nrow(raking_log)+1, 1] <- ("Negatives are NOT allowed, but one or more raked values are negative.") }
     }
     message("FAIL. Raking has stopped. One or more final checks did not pass: ")
-    if(testCols1 == FALSE) { message("The sum of raked columns in Sex 1 does not match Population Control Total.") }
-    if(testCols2 == FALSE) { message("The sum of raked columns in Sex 2 does not match Population Control Total.") }
-    if(testCols3 == FALSE) { message("The sum of raked columns in Sex 3 does not match Population Control Total.") }
+    for(i in seq_along(testCols)){
+      if(testCols[i] == FALSE) { raking_log[nrow(raking_log)+1, 1] <-
+        message(paste0("The sum of raked columns in Sex ", i, " does not match Population Control Total.")) }
+    }
+    # if(testCols1 == FALSE) { message("The sum of raked columns in Sex 1 does not match Population Control Total.") }
+    # if(testCols2 == FALSE) { message("The sum of raked columns in Sex 2 does not match Population Control Total.") }
+    # if(testCols3 == FALSE) { message("The sum of raked columns in Sex 3 does not match Population Control Total.") }
     if(testRows == FALSE) { message("One or more rows do not sum to its/their Region Control Total(s).") }
     if(testCells == FALSE) { message("Negatives are NOT allowed, but one or more raked values are negative.") }
     utils::View(OutputData)

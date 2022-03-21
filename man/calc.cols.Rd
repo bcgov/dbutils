@@ -7,7 +7,7 @@
 calc.cols(data, temp, VarRow, n_colGrps)
 }
 \arguments{
-\item{data}{a dataframe of inital population counts that need to be adjusted to control totals
+\item{data}{a dataframe of initial population counts that need to be adjusted to control totals
 (e.g., columns: a region variable ("VarRow"), 1 (for Males), 2 (for Females))}
 
 \item{temp}{a dataframe of control totals to adjust data to (e.g., region control totals)}

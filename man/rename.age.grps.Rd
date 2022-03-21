@@ -4,7 +4,7 @@
 \alias{rename.age.grps}
 \title{Rename negative columns as 5 year age groups}
 \usage{
-\method{rename}{age.grps}(data, VarRegion, VarSex)
+rename.age.grps(data, VarRegion, VarSex)
 }
 \arguments{
 \item{data}{A dataset with -X1, -X2, -X3, ... column names}

@@ -20,7 +20,7 @@ order needed to sort rows
 \description{
 Add a random number to a specified column, "my_col", then sort rows based on my_col, with the
 random fraction used to break any ties. This is a helper function used in \code{\link{dbRake}}
-withiin the raking algorithm functions (\code{\link{allowNegsnoMargin}}, \code{\link{noNegsnoMargin}},
+within the raking algorithm functions (\code{\link{allowNegsnoMargin}}, \code{\link{noNegsnoMargin}},
 and \code{\link{noNegsneedMargin}}), when there are more than two row groups (e.g., Regions, 5-year
 Age Groups, Ages, more than two sexes (when Stats Can adds more than Male and Female)).
 }

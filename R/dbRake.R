@@ -618,7 +618,6 @@ noNegsnoMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps, R
   upPower10 <- 10*(10^ceiling(log10(n_colGrps))) ## round up to the nearest power of 10
   CurrRow[6, 1] <- "AdjCurrRow + Random"
   CurrRow <- CurrRow %>% dplyr::mutate(dplyr::across(-VarRow, ~ as.double(.x)))
-  CurrRow[6, 2:(n_colGrps+1)] <- CurrRow[6, 2:(n_colGrps+1)]
   CurrRow[6, 2:(n_colGrps+1)] <- CurrRow[3, 2:(n_colGrps+1)] + (CurrRow[5, 2:(n_colGrps+1)])/upPower10
 
   ## sort cells in descending order AdjCurrRow size, so adjustments always made to largest margins
@@ -2101,7 +2100,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## 3B. repeat for all Sexes, except Total
   while(CurrSex < VarSexTotal) {
 
-    age <- 1
+    age <- 1  ## this is actually age GROUP
 
     for(age in seq_along(AgeGrps5Yr)) {
 

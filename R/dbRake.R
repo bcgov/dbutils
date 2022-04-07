@@ -212,7 +212,8 @@ prorate.row <- function(CurrRow, n_colGrps, allowNegatives) {
   ## calc new (adjusted) sum, new difference, and new adjustment value
   CurrRow$Sum <- sum(CurrRow[ ,2:(n_colGrps+1)])
   CurrRow$Diff <- CurrRow$Ctrl_TOTAL - CurrRow$Sum
-  if(abs(CurrRow$Diff) < 0.001) { CurrRow$Diff <- 0 }
+  # if(abs(CurrRow$Diff) < 0.001) { CurrRow$Diff <- 0 }
+  if(abs(CurrRow$Diff) < 0.000001) { CurrRow$Diff <- 0 }
   CurrRow$adj_value <- CurrRow$Diff/n_colGrps
 
   CurrRow
@@ -2250,7 +2251,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## Region Ctrl_TOTALs for CurrSex and CurrAgeGrp
       temp <- OutputData5 %>%
         dplyr::filter(Sex == CurrSex) %>%
-        dplyr::select(VarRow = Region, TOTAL = CurrAgeGrp)
+        dplyr::select(VarRow = Region, TOTAL = tidyselect::all_of(CurrAgeGrp))
       dataCols <- calc.cols(data = dataCols, temp, VarRow, n_colGrps)
       dataCols$adj_value <- NULL
       rm(temp)
@@ -2349,8 +2350,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       rows_order <- InputData %>%
         dplyr::filter(Sex == CurrSex) %>%
         dplyr::select(VarRow = which(names(InputData) == VarRegion)) %>%
-        # dplyr::select(which(names(InputData) == VarRegion)) %>%
-        # dplyr::rename(VarRow = which(names(InputData) == VarRegion)) %>%
         dplyr::mutate(row_order = dplyr::row_number(),
                       VarRow = as.character(VarRow))
       dataCols <- dplyr::left_join(dataCols, rows_order, by = "VarRow")

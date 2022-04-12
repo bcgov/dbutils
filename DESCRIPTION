@@ -1,7 +1,7 @@
 Package: dbutils
 Title: Utility functions to process and modify BC Stats' population databases
 Version: 0.0.0.9000
-Date: 2022-03-24
+Date: 2022-04-12
 Authors@R: 
     c(person(given = "Julie", family = "Hawkins", role = c("aut", "cre"),
            email = "Julie.Hawkins@gov.bc.ca"),

@@ -1181,7 +1181,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     CtrlPopTotals <- CtrlPopTotals %>% dplyr::select(-Year)
   }
 
-  # if(!is.null(CtrlRegionTotals)) {  ## works even if CtrlRegionTotals is NULL (i.e., names are NULL so no "Year")
+  ## works even if CtrlRegionTotals is NULL (i.e., names are NULL so no "Year")
   if("Year" %in% names(CtrlRegionTotals)) {
     if(length(unique(CtrlRegionTotals$Year)) != 1) {
       stop("CtrlRegionTotals should have only one year of data. To rake over multiple years, use `multiRake()`.")
@@ -1190,7 +1190,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     yr_CtrlReg <- unique(CtrlRegionTotals$Year)
     CtrlRegionTotals <- CtrlRegionTotals %>% dplyr::select(-Year)
   }
-  # }
 
   if("Year" %in% names(CtrlAgeGrpsTotals)) {
     if(length(unique(CtrlAgeGrpsTotals$Year)) != 1) {
@@ -1220,14 +1219,25 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   }
 
   ## F. rename negative column names as 5yr age groups where necessary (this is why -999 MUST be called TOTAL)
-  # InputDataCols <- names(InputData)  ## this isn't used anywhere...
   InputData <- rename.age.grps(data = InputData, VarRegion, VarSex)
   CtrlPopTotals <- rename.age.grps(data = CtrlPopTotals, VarRegion, VarSex)
   if(!is.null(CtrlAgeGrpsTotals)) {
     CtrlAgeGrpsTotals <- rename.age.grps(data = CtrlAgeGrpsTotals, VarRegion, VarSex)
   }
 
-  ## G. create OutputData from InputData, that will be updated with changes
+  ## G. ensure that region variable is character
+  InputData <- InputData %>%
+    dplyr::rename(temp = {{VarRegion}}) %>%
+    dplyr::mutate(temp = as.character(temp)) %>%
+    dplyr::rename({{VarRegion}} := temp)
+  if(!is.null(CtrlRegionTotals)) {
+    CtrlRegionTotals <- CtrlRegionTotals %>%
+      dplyr::rename(temp = {{VarRegion}}) %>%
+      dplyr::mutate(temp = as.character(temp)) %>%
+      dplyr::rename({{VarRegion}} := temp)
+  }
+
+  ## H. create OutputData from InputData, that will be updated with changes
   OutputData <- InputData
 
   if(writeRakingLog == TRUE) {
@@ -1273,6 +1283,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     n_colGrps <- n_Sex
     n_rowGrps <- n_Regions
     data <- calc.cols(data = data, temp, VarRow = VarRegion, n_colGrps)
+    ## this has columns: VarRow, all non-Total Sexes, Sum, Ctrl_TOTAL, Diff, adj_value for all regions
 
     ## 1E. reconcile row by row (i.e., for 1:n_Sex, prorate so region totals sum to region control totals)
     for (i in 1:n_rowGrps) {
@@ -1355,7 +1366,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }
 
     ## ensure all numbers are integers (i.e., no fractional people allowed)
-    CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+    CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])  ## this is a vector
 
     ## replace actual data with adjusted data in CurrCol
     dataCols[ ,i] <- CurrCol[,-1]
@@ -1416,7 +1427,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## Step 2: calc adjustment value (difference divided by number of groups)
 
     ## Region Ctrl_TOTALs
-    temp <- data %>% dplyr::select(VarRow, TOTAL = Ctrl_TOTAL) %>% dplyr::mutate(VarRow = as.character(VarRow))
+    temp <- data %>% dplyr::select(VarRow, TOTAL = Ctrl_TOTAL)
     dataCols <- calc.cols(data = dataCols, temp, VarRow, n_colGrps)
     dataCols$adj_value <- NULL
     rm(temp)
@@ -1515,8 +1526,9 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   temp <- temp %>%
     tidyr::pivot_longer(c(-VarRow), names_to = "VarSex", values_to = "TOTAL") %>%
     dplyr::rename(VarRegion = VarRow) %>%
-    dplyr::mutate(VarSex = dplyr::case_when(VarSex == "Sum" ~ "3", TRUE ~ as.character(VarSex))) %>%
-    dplyr::mutate(VarRegion = as.numeric(VarRegion), VarSex = as.numeric(VarSex))
+    dplyr::mutate(VarSex = dplyr::case_when(VarSex == "Sum" ~ as.character(VarSexTotal), TRUE ~ as.character(VarSex))) %>%
+    # dplyr::mutate(VarSex = dplyr::case_when(VarSex == "Sum" ~ "3", TRUE ~ as.character(VarSex))) %>%
+    dplyr::mutate(VarSex = as.numeric(VarSex))
 
   ### ** Put the data back in order, if necessary **
   ## re-sort rows by InputData order
@@ -1584,10 +1596,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     }; rm(i)
     CtrlAgeGrpsTotals <- CtrlAgeGrpsTotals %>%
       dplyr::select(Sex, tidyselect::all_of(AgeGrps5Yr), tidyselect::all_of(ageLast), TOTAL)
-    if("0-4" %in% names(CtrlAgeGrpsTotals)) {
-      attributes(CtrlAgeGrpsTotals$`0-4`) <- NULL  ## for some reason "0-4" may be named
-    }
-
+    ## for some reason age group columns might be named (bad), drop these names
+    for(j in seq_along(names(CtrlAgeGrpsTotals))) {
+      attributes(CtrlAgeGrpsTotals[,j]) <- NULL
+    }; rm(j)
 
     ## create 5 year & maximum age groups **sample data**
     OutputData5 <- OutputData %>% dplyr::rename(Region = {{VarRegion}}, Sex = {{VarSex}})
@@ -1723,7 +1735,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       }
 
       ## ensure all numbers are integers (i.e., no fractional people allowed)
-      CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+      CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])  ## this is a vector
 
       ## replace actual data with adjusted data in CurrCol
       MaxAge[ ,i] <- CurrCol[,-1]
@@ -1757,6 +1769,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## 2F. subtract the prorated oldest age group(s) from Region totals to rake majority of 5 yr age groups
     ## set up: rows = regions w/ last row = Ctrl_TOTAL; cols = VarRow, Sex, 5 yr age groups, TOTAL
     ## Do NOT include oldest age group(s) in prorating rows of 5 year age groups! i.e., drop AgeGrpsOldest
+
     data <- data %>%
       dplyr::select(-tidyselect::all_of(AgeGrpsOldest)) %>%
       dplyr::left_join(MaxAge, by = "VarRow") %>%
@@ -1778,6 +1791,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## drop Sex & TOTAL from data
     data <- data %>% dplyr::select(-Sex, -TOTAL)
     data <- calc.cols(data, temp, VarRow, n_colGrps)
+    ## this has cols: VarRow, non-Oldest 5yr age groups, Sum, Ctrl_TOTAL, Diff, adj_value
 
 
     ## 2H. prorate row by row (i.e., for 1:n_Regions, prorate so region age group totals sum to region control totals)
@@ -1834,7 +1848,13 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       }
 
       ## ensure all numbers are integers (i.e., no fractional people allowed)
-      CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+      # CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = dplyr::pull(CurrCol[1:n_rowGrps, -1]))
+      ## if no `pull` then real.to.int() does not work as intended (i.e., realNums is a single col df (bad), not a vector (good))
+      if("tbl" %in% class(CurrCol)) {
+        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = dplyr::pull(CurrCol[1:n_rowGrps, -1]))
+      } else {
+        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+      }
 
       ## replace actual data with adjusted data in CurrCol
       dataCols[ ,i] <- CurrCol[,-1]
@@ -1847,23 +1867,23 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     ## sum(dataCols$`0-4`[1:89]) - CtrlAgeGrpsTotals$`0-4`[CtrlAgeGrpsTotals$Sex == CurrSex]     ## should be zero
     ## sum(dataCols$`70-74`[1:89]) - CtrlAgeGrpsTotals$`70-74`[CtrlAgeGrpsTotals$Sex == CurrSex] ## should be zero
     ### *************************************************************************************** ###
-    # AgeGrpsNotOldest <- setdiff(AgeGrps5Yr, AgeGrpsOldest)
-    # check2.3 <- sum(dataCols[1:n_Regions, -1]) == sum(CtrlAgeGrpsTotals[CtrlAgeGrpsTotals$Sex == CurrSex, AgeGrpsNotOldest])
-    # if(check2.3 != TRUE) {
-    #   stop("Error 2.3 (prorate non-AgeGrpsOldest columns): 5 year age group columns (EXCEPT for AgeGrpsOldest) should sum to the current sex's control total, but they do not.")
-    # } else {
-    #   if(writeRakingLog == TRUE) {
-    #     ## add message to raking_log
-    #     raking_log[nrow(raking_log)+1, 1] <- paste0("Part 2.3, Sex ", CurrSex,
-    #                                                 " (prorate columns): Remaining 5-year age group columns (",
-    #                                                 AgeGrpsNotOldest[1], " through ",
-    #                                                 AgeGrpsNotOldest[length(AgeGrpsNotOldest)],
-    #                                                 ") now sum to their control total for this Sex.")
-    #   }
-    # }
+    AgeGrpsNotOldest <- setdiff(AgeGrps5Yr, AgeGrpsOldest)
+    check2.3 <- sum(dataCols[1:n_Regions, -1]) == sum(CtrlAgeGrpsTotals[CtrlAgeGrpsTotals$Sex == CurrSex, AgeGrpsNotOldest])
+    if(check2.3 != TRUE) {
+      stop("Error 2.3 (prorate non-AgeGrpsOldest columns): 5 year age group columns (EXCEPT for AgeGrpsOldest) should sum to the current sex's control total, but they do not.")
+    } else {
+      if(writeRakingLog == TRUE) {
+        ## add message to raking_log
+        raking_log[nrow(raking_log)+1, 1] <- paste0("Part 2.3, Sex ", CurrSex,
+                                                    " (prorate columns): Remaining 5-year age group columns (",
+                                                    AgeGrpsNotOldest[1], " through ",
+                                                    AgeGrpsNotOldest[length(AgeGrpsNotOldest)],
+                                                    ") now sum to their control total for this Sex.")
+      }
+    }
 
     ## remove no-longer-needed objects
-    rm(i, CurrCol, temp)  ## check2.3, AgeGrpsNotOldest
+    rm(i, CurrCol, temp, check2.3, AgeGrpsNotOldest)  ## check2.3, AgeGrpsNotOldest
 
 
     ## Part 2.4: rake prorated data ----
@@ -1975,8 +1995,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     rows_order <- InputData %>%
       dplyr::filter(Sex == CurrSex) %>%
       dplyr::select(VarRow = which(names(InputData) == VarRegion)) %>%
-      # dplyr::select(which(names(InputData) == VarRegion)) %>%
-      # dplyr::rename(VarRow = which(names(InputData) == VarRegion)) %>%
       dplyr::mutate(row_order = dplyr::row_number(),
                     VarRow = as.character(VarRow))
     dataCols <- dplyr::left_join(dataCols, rows_order, by = "VarRow")
@@ -2047,7 +2065,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   while(counter < VarSexTotal) {
     ## in case there are more than 2 non-total sexes
     temp <- OutputData5 %>% dplyr::filter(Sex == counter)
-    # TotalSex[, -1] <- TotalSex[, -1] + temp[, -1]  ## sum all (even Sex) but Region
     TotalSex[, ageGrpCols] <- TotalSex[, ageGrpCols] + temp[, ageGrpCols]  ## for all age groups, sum this sex in
     counter <- counter + 1
     TotalSex$Sex <- counter     ## needed for when there are more than 2 non-total Sexes (e.g., 1+2+3 != 4)
@@ -2101,7 +2118,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   ## 3B. repeat for all Sexes, except Total
   while(CurrSex < VarSexTotal) {
 
-    age <- 1  ## this is actually age GROUP
+    # age <- 1  ## this is actually age GROUP (redundant with seq_along code below)
 
     for(age in seq_along(AgeGrps5Yr)) {
 
@@ -2136,7 +2153,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         dplyr::select(VarRow = Region, TOTAL = tidyselect::all_of(CurrAgeGrp))  ## this is 1:n_Regions X 2 cols (VarRow and updated 5-yr age group)
 
       ## drop Sex column for now (it's just all = CurrSex) so calc.cols() works properly
-      data <- data %>% dplyr::select(-{{VarSex}}) %>% dplyr::mutate(VarRow = as.character(VarRow))
+      data <- data %>% dplyr::select(-{{VarSex}})
 
       ## set n_colGrps (batch of 5 single age cols) and n_rowGrps (region rows)
       n_colGrps <- length(AgeSingles)
@@ -2144,6 +2161,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
 
       ## calc columns (Sum, Ctrl_TOTAL, Diff, adj_value)
       data <- calc.cols(data, temp, VarRow, n_colGrps)
+      ## this has cols: VarRow, five age columns, Sum, Ctrl_TOTAL, Diff, adj_value
 
       ## 3F. prorate row by row (i.e., for 1:n_Regions, prorate so region totals sum to region control totals)
       for (i in 1:n_rowGrps) {
@@ -2158,7 +2176,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         }
 
         ## ensure all numbers are integers (i.e., no fractional people allowed)
-        CurrRow[, 2:(n_colGrps + 1)] <- real.to.int(realNums = CurrRow[, 2:(n_colGrps + 1)])
+        CurrRow[, 2:(n_colGrps + 1)] <- real.to.int(realNums = CurrRow[, 2:(n_colGrps + 1)])  ## 1 row of cols ~ vector
 
         ## replace actual data with adjusted data in CurrRow
         data[i, ] <- CurrRow
@@ -2177,10 +2195,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## example: sum(data[,names(data) %in% AgeSingles[1]]) - CtrlPopTotals[CtrlPopTotals$Sex == CurrSex, names(CtrlPopTotals) == AgeSingles[1]]   ## likely not zero
       ### *************************************************************************************** ###
 
-      # if(allowNegatives == FALSE & !all(data[,names(data) %in% AgeSingles] >= 0)) {
-      #   message(paste0("Error 3.1: (prorating single age data, rows): Negatives are not allowed, ",
-      #               "but exist in Age group ", CurrAgeGrp, " after prorating rows."))
-      # }
+      if(allowNegatives == FALSE & !all(data[,names(data) %in% AgeSingles] >= 0)) {
+        message(paste0("Error 3.1: (prorating single age data, rows): Negatives are not allowed, ",
+                    "but exist in Age group ", CurrAgeGrp, " after prorating rows."))
+      }
 
 
       ## Part 3.2: prorate columns ----
@@ -2215,9 +2233,11 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
         }
 
         ## ensure all numbers are integers (i.e., no fractional people allowed)
-        CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
-        # CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1] %>% dplyr::pull())
-        ## Error: no applicable method for 'pull' applied to an object of class "c('double', 'numeric')"
+        if("tbl" %in% class(CurrCol)) {
+          CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = dplyr::pull(CurrCol[1:n_rowGrps, -1]))
+        } else {
+          CurrCol[1:n_rowGrps, -1] <- real.to.int(realNums = CurrCol[1:n_rowGrps, -1])
+        }
 
         ## replace actual data with adjusted data in CurrCol
         dataCols[ ,i] <- CurrCol[,-1]
@@ -2238,10 +2258,10 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       ## sum(dataCols[1:n_Regions, names(dataCols) == AgeSingles[5]]) - CtrlPopTotals[CurrSex, names(CtrlPopTotals) == AgeSingles[5]]  ## should be zero
       ### *************************************************************************************** ###
 
-      # if(allowNegatives == FALSE & !all(dataCols[1:n_Regions, names(dataCols) %in% AgeSingles] >= 0)) {
-      #   stop(paste0("Error 3.2: (prorating single age data, rows): Negatives are not allowed, ",
-      #               "but exist in Age group ", CurrAgeGrp, " after prorating columns"))
-      # }
+      if(allowNegatives == FALSE & !all(dataCols[1:n_Regions, names(dataCols) %in% AgeSingles] >= 0)) {
+        stop(paste0("Error 3.2: (prorating single age data, rows): Negatives are not allowed, ",
+                    "but exist in Age group ", CurrAgeGrp, " after prorating columns"))
+      }
 
       ## Part 3.3: rake prorated data ----
       ## 3J. calc necessary columns: Sum, Ctrl_TOTAL, Diff, adj_value
@@ -2428,7 +2448,6 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
   while(counter < VarSexTotal) {
     ## in case there are more than 2 non-total sexes
     temp <- OutputData %>% dplyr::filter(Sex == counter)
-    # TotalSex[, -1] <- TotalSex[, -1] + temp[, -1]  ## sum all (even Sex) but Region
     TotalSex[, c(ageSingleCols, "TOTAL")] <- TotalSex[, c(ageSingleCols, "TOTAL")] + temp[, c(ageSingleCols, "TOTAL")]  ## for all age groups, sum this sex in
     rm(temp)
     counter <- counter + 1

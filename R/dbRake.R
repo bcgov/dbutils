@@ -2707,7 +2707,13 @@ multiRake <- function(years, censusYears = FALSE, InputData, CtrlPopTotals, Ctrl
   data_done <- purrr::map_dfr(.x = 1:length(years_rake), ~ dplyr::bind_rows(data_done[[.]])) %>%
     dplyr::select(Year, tidyselect::everything())
 
-  ## 5b. if any year(s) were not raked (i.e., definitive census years), add them to raked data
+  ## 5b. ensure that region variable is character
+  InputData <- InputData %>%
+    dplyr::rename(temp = {{VarRegion}}) %>%
+    dplyr::mutate(temp = as.character(temp)) %>%
+    dplyr::rename({{VarRegion}} := temp)
+
+  ## 5c. if any year(s) were not raked (i.e., definitive census years), add them to raked data
   if(length(censusYears) == 1) {
     if(censusYears != FALSE) {
       data_done <- dplyr::bind_rows(data_done, InputData %>% dplyr::filter(Year %in% censusYears))

@@ -171,7 +171,7 @@ conversionRead <- function(conv_path) {
 #' @param rake Whether raking is required (default) or not. Default = TRUE.
 #' While the \code{\link{dbRake}} function requires InputData and CtrlPopTotals (either already
 #' in the environment or to be read in from an "inputs" folder), `dbConvert` will create these
-#' from "db" and the conversion table, so does not these arguments specified.
+#' from "db" and the conversion table, so does not need these arguments specified.
 #' @param change_rake_args Logical value whether raking argument defaults need to be changed.
 #' Default = FALSE. If set to TRUE, user will be asked to set the following arguments:
 #' \itemize{

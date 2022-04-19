@@ -104,6 +104,7 @@ rename.age.grps <- function(data, VarRegion, VarSex) {
 #' @return a vector of integer numbers that sums to the rounded sum of realNums
 #' @family raking helpers
 #' @seealso The overall raking function: \code{\link{dbRake}}()
+#' @export
 real.to.int <- function(realNums) {
 
   ## difference between rounded sum of realNums and rounded sum of just integer portion of realNums
@@ -196,6 +197,7 @@ calc.cols <- function(data, temp, VarRow, n_colGrps) {
 #' @return original dataframe of row, that is now prorated by the adjustment values
 #' @family raking helpers
 #' @seealso The overall raking function: \code{\link{dbRake}}()
+#' @export
 prorate.row <- function(CurrRow, n_colGrps, allowNegatives) {
 
   myVars <- names(CurrRow)[2:(n_colGrps+1)]

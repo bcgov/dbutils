@@ -28,6 +28,7 @@ Age Groups, Ages, more than two sexes (when Stats Can adds more than Male and Fe
 The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
+\code{\link{adjustSex}()},
 \code{\link{allowNegsnoMargin}()},
 \code{\link{calc.cols}()},
 \code{\link{multiRake}()},

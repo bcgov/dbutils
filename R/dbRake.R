@@ -382,6 +382,209 @@ add.random.fraction.to.cols <- function(df, my_col) {
 }
 
 
+#### adjustSex ----
+#' Adjust population counts by Sex, when additional prorating is needed before raking.
+#'
+#' @description
+#' The APL Estimates Breakdown System (EBS) was unable to rake population estimates of CHSAs
+#' by Age and Sex, unless Sex was adjusted (aka, prorated) before it was raked (even more so than
+#' the prorating included within the raking function). (EBS first used CHSAs in 2019.)
+#'
+#' @details
+#' This function takes InputData and adjusts Sex by TypeID counts, compared to CtrlPopTotals (i.e.,
+#' BC age sex population counts). InputData and CtrlPopTotals are assumed to already be in the
+#' environment.
+#' Historically, EBS had been run on the 89 LHAs (local health areas). EBS was first run on CHSAs
+#' in 2019 to break down the 218 CHSA estimate totals to age sex estimates. The results were erratic
+#' in that many young age children (0-5) were removed during the raking process rendering some CHSAs
+#' with very low or no children aged 0-5. This problem was fixed by first prorating the EBS output
+#' by sex (i.e., this adjustSex() function) using the BC level sex totals, then raking as usual.
+#' @param InputData Data variable containing the database to be adjusted. Expects data to be in
+#' data.frame with columns: Year, Type, TypeID, Sex, ages 0:100, TOTAL. If InputData's Age is wide,
+#' it will pivot the age columns long to column "Age". If any BC/overall counts are included (i.e.,
+#' TypeID == 0), they are dropped.
+#' @param CtrlPopTotals Data variable containing the overall BC database to be adjusted against.
+#' Expects data to be in data.frame with columns: Year, Sex, ages 0:100, TOTAL. The Sex variable is
+#' assumed to be numeric, with the largest Sex value representing Total sex.
+#' @param years Vector of Years to adjust. Default = NULL. If NULL, the function will iterate over
+#' all years found in InputData (assuming such years are also in CtrlPopTotals).
+#' @param VarSex Name of Sex variable in both files (e.g., "Sex"). \strong{Note: Sex must be a
+#' numeric variable (e.g., 1,2,3) where the Total is the maximum number (e.g., 3.}
+#' @return Database with Sex adjusted to CtrlPopTotals, by TypeID.
+#' \code{\link{dbConvert}}
+#' @examples
+#' \dontrun{  adjustSex(InputData = pop, CtrlPopTotals = BC_AGE_SEX, years = NULL, VarSex = "Sex")  }
+#' \dontrun{  adjustSex(InputData = pop, CtrlPopTotals = BC_AGE_SEX)  }
+#' @family raking helpers
+#' @seealso Overall package documentation: \code{\link{dbutils}}()
+#' @export
+adjustSex <- function(InputData, CtrlPopTotals, years = NULL, VarSex = "Sex") {
+
+  ### * PREP
+
+  ## ensure InputData has "Year", "TypeID" and {{VarSex}} columns
+  if(!all(c("Year", "Type", "TypeID", VarSex) %in% names(InputData))) {
+    stop(paste0("InputData is missing (or has misnamed) variables: Year, Type, TypeID and/or ", VarSex, "."))
+  }
+
+  ## ensure CtrlPopTotals has "Year" and {{VarSex}} columns
+  if(!all(c("Year", VarSex) %in% names(CtrlPopTotals))) {
+    stop(paste0("CtrlPopTotals is missing (or has misnamed) variables: Year and/or ", VarSex, "."))
+  }
+
+  ## ensure InputData's Age is long; if wide, pivot it; if no Age data, throw error
+  if(!("age" %in% tolower(names(InputData)))) {
+    ## no "Age" column in InputData
+    namesTotal <- c("total", "Total", "TOTAL")
+    if(any(namesTotal %in% names(InputData))) {
+      InputData <- InputData %>% dplyr::select(-tidyselect::any_of(namesTotal))
+    }; rm(namesTotal)
+    ## get namesAges
+    namesAges <- names(InputData)[(names(InputData) %in% -999:999)]
+    if(length(namesAges) == 0) {
+      stop("InputData has no Age data (i.e., no 'Age' nor individual age (0, 1, 2, ...) columns).")
+    }
+    ## lengthen InputData with new "Age" column from original 0, 1, 2, ... columns
+    InputData <- InputData %>%
+      tidyr::pivot_longer(tidyselect::all_of(namesAges), names_to = "Age", values_to = "pop") %>%
+      dplyr::mutate(Age = as.numeric(Age))
+  }
+
+  ## ensure InputData and CtrlPopTotals both have {{VarSex}}, it is numeric, and values are same in files
+  InputData <- InputData %>% dplyr::rename(VarSex = {{VarSex}})
+  if(class(InputData$VarSex) != "numeric") {
+    InputData <- InputData %>% dplyr::mutate(VarSex = as.numeric(VarSex))
+  }
+  sexes <- unique(InputData$VarSex)
+  VarSexTotal <- max(sexes)
+
+  CtrlPopTotals <- CtrlPopTotals %>% dplyr::rename(VarSex = {{VarSex}})
+  if(class(CtrlPopTotals$VarSex) != "numeric") {
+    CtrlPopTotals <- CtrlPopTotals %>% dplyr::mutate(VarSex = as.numeric(VarSex))
+  }
+  if(any(sort(unique(CtrlPopTotals$VarSex)) != sort(sexes))) {
+    stop(paste0(VarSex, " values do not match between InputData and CtrlPopTotals."))
+  }
+
+  ## drop any BC/overall totals from InputData
+  InputData <- InputData %>% dplyr::filter(TypeID != 0)
+
+  ## if 'years' not set (i.e., NULL), pull from InputData; check that all years are in InputData & CtrlPopTotals
+  if(is.null(years)) {
+    years <- unique(InputData$Year)
+  } else if(any(!(years %in% unique(InputData$Year)))) {
+    stop("One or more years are not in InputData.")
+  }
+  if(any(!(years %in% unique(CtrlPopTotals$Year)))) {
+    stop("One or more years are not in CtrlPopTotals.")
+  }
+
+
+  ### * ADJUST SEX
+
+  ## create placeholder for adjusted data
+  adjInputData <- InputData[0,] %>% dplyr::rename(adjpop = pop)
+
+  ## iterate over years
+  for(yr in seq_along(years)) {
+
+    data <- InputData %>% dplyr::filter(Year == years[yr])
+
+    dataBC <- CtrlPopTotals %>%
+      dplyr::filter(Year == years[yr]) %>%
+      dplyr::select(-Year, -TOTAL) %>%
+      tidyr::pivot_longer(-VarSex, names_to = "Age", values_to = "BC") %>%
+      dplyr::mutate(Age = as.numeric(Age)) %>%
+      dplyr::arrange(Age)
+
+    ## get all non-total sexes
+    sexGrps <- sexes[sexes != VarSexTotal]
+
+    ## get adjusted counts for each (non-total) sex
+    for(i in seq_along(sexGrps)) {
+
+      ## A. get tempA (Year, (Type), TypeID, VarSex, Age, pop) where VarSex == sexGrps[i]
+      tempA <- data %>% dplyr::filter(VarSex == sexGrps[i]) %>%
+        dplyr::select(TypeID, Age, pop)
+
+      ## B. get tempB (Age, pop) for VarSex == sexGrps[i]
+      tempB <- tempA %>%
+        dplyr::group_by(Age) %>%
+        dplyr::summarize(pop = sum(pop)) %>%
+        dplyr::arrange(Age)
+
+      ## C. get tempC (TypeID, Age, pop.x (tempA pop), pop.y (tempB pop), pop)
+      tempC <- tempA %>%
+        dplyr::left_join(tempB, by = "Age") %>%
+        dplyr::mutate(pop = pop.x / pop.y)
+
+      ## D. calculate diff of tempC from dataBC
+      diff <- dataBC %>% dplyr::filter(VarSex == sexGrps[i]) %>% dplyr::select(-VarSex) %>%
+        dplyr::left_join(tempB, by = "Age") %>%
+        dplyr::mutate(diff = BC - pop) %>%
+        dplyr::select(Age, diff)
+
+      ## E. get tempD (TypeID, Age, pop.x, pop.y, pop, diff, pop_diff, adjpop)
+      tempD <- tempC %>%
+        dplyr::left_join(diff, by = "Age") %>%
+        dplyr::mutate(pop_diff = pop * diff) %>%
+        dplyr::mutate(adjpop = pop.x + pop_diff)
+
+      ## F. get whole numbers
+      tempE <- tempD %>%
+        dplyr::mutate(adjpop = floor(0.5 + adjpop), VarSex = i) %>%
+        dplyr::select(TypeID, Age, VarSex, adjpop)
+
+      ## G. save tempE as adjSex#
+      assign(x = paste0("adjSex", sexGrps[i]), value = tempE)
+
+      rm(tempA, tempB, tempC, tempD, tempE, diff)
+
+    }; rm(i)
+
+    ## combine adjSex# data
+    adjSexes <- paste0("adjSex", sexGrps)
+    total <- get(adjSexes[1])
+    for(s in 2:length(adjSexes)) {
+      total <- total %>% dplyr::bind_rows(get(adjSexes[s]))
+    }; rm(s)
+
+    ## sum adjpop across all sexes, and join into total
+    temp <- total %>% dplyr::group_by(TypeID, Age) %>%
+      dplyr::summarize(adjpop = sum(adjpop), .groups = "drop") %>%
+      dplyr::mutate(VarSex = VarSexTotal) %>%
+      dplyr::select(TypeID, Age, VarSex, adjpop)
+    total <- total %>% dplyr::bind_rows(temp)
+    rm(temp)
+
+    ## add back Year and Type variables
+    total <- total %>%
+      dplyr::mutate(Year = years[yr],  Type = unique(data$Type)) %>%
+      dplyr::select(Year, Type, tidyselect::everything())
+
+    ## add adjusted data into adjInputData
+    adjInputData <- adjInputData %>% dplyr::bind_rows(total)
+
+    rm(data, dataBC, sexGrps, total, adjSexes)
+
+  }
+
+
+  ### * OUTPUT
+  adjInputData <- adjInputData %>%
+    dplyr::mutate(VarSex = as.numeric(VarSex)) %>%
+    tidyr::pivot_wider(names_from = "Age", values_from = "adjpop") %>%
+    dplyr::select(Year, Type, TypeID, VarSex, tidyselect::everything()) %>%
+    janitor::adorn_totals(where = "col", name = "TOTAL", -c(Year, Type, TypeID, VarSex)) %>%
+    dplyr::rename({{VarSex}} := VarSex)
+
+  rm(namesAges, sexes, yr, VarSexTotal)
+
+  return(adjInputData)
+
+}
+
+
 #### raking algorithm function A: allowNegsnoMargin ----
 #' Raking Algorithm Function A: when negative values are allowed
 #'

@@ -20,7 +20,7 @@ data.frame with columns: Year, Type, TypeID, Age, Male, Female, Total.}
 \item{conv_table}{Name of conversion table to be read in to provide the proportional
 relationship ("split") between source and destination geographies. Conversion table path is
 hardcoded to ensure consistency across population systems, and will find conversion table in
-"I:/ConversionTables/" folder.}
+".../ConversionTables/" folder (on the LAN).}
 
 \item{years}{Vector of one or more years to be included in the converted destination data.
 Default = NULL. If NULL, the function will convert for all years in the source data.}
@@ -63,8 +63,8 @@ Converts a population database to another geography using a conversion table and
 raking.
 }
 \details{
-Conversion tables should be in the "I:/ConversionTables/" folder so that they can be found, and
-are expected to be .xlsx files with three unnamed columns with the proportional relationship
+Conversion tables should be in the ".../ConversionTables/" LAN folder so that they can be found,
+and are expected to be .xlsx files with three unnamed columns with the proportional relationship
 (aka, "split"), source and destination geographies.
 
 The conversion process is as follows:
@@ -95,6 +95,7 @@ Overall package documentation: \code{\link{dbutils}}()
 
 Other conversion helpers: 
 \code{\link{conversionRead}()},
-\code{\link{conversionTables}()}
+\code{\link{conversionTables}()},
+\code{\link{geogConvert}()}
 }
 \concept{conversion helpers}

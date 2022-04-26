@@ -168,6 +168,7 @@ FrankNames <- data.frame(ID =   c("CS", "MP", "ED", "HS", "HA", "CH", "SR",
 # •	CM=Census Metropolitan Areas Canada/BC CA
 # •	CR=College Region
 # •	CS=Census Subdivision
+# •	CH=Community Health Service Area
 # •	DR=Development Region
 # •	EA=Employment & Immigration Aggregate Areas
 # •	EI=Employment & Immigration Canada Region
@@ -249,6 +250,9 @@ TOTAL <- Ctrl_TOTAL <- Sum <- Diff <- NULL
 # in dbRake()
 Sex <- Region <- VarRow <- row_order <- TotalOldest <- NULL
 
+# in adjustSex()
+pop <- pop.x <- pop.y <- pop_diff <- adjpop <- NULL
+
 
 # Conversion variables ----
 
@@ -257,4 +261,7 @@ Table <- X2 <- X3 <- X4 <- NULL
 
 # in dbConvert()
 Type <- destination <- mn <- flag <- Ends <- Grps <- ID_F <- NULL
+
+# in geogConvert()
+adj_value <- TotalSource <- check <- NULL
 

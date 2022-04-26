@@ -26,6 +26,7 @@ The overall raking function: \code{\link{dbRake}}()
 
 Other raking helpers: 
 \code{\link{add.random.fraction.to.cols}()},
+\code{\link{adjustSex}()},
 \code{\link{allowNegsnoMargin}()},
 \code{\link{calc.cols}()},
 \code{\link{multiRake}()},

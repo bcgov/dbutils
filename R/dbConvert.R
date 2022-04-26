@@ -167,7 +167,9 @@ conversionRead <- function(conv_path) {
 #' hardcoded to ensure consistency across population systems, and will find conversion table in
 #' ".../ConversionTables/" folder (on the LAN).
 #' @param years Vector of one or more years to be included in the converted destination data.
-#' Default = NULL. If NULL, the function will convert for all years in the source data.
+#' Default = NULL. If NULL, the function will convert for all years in the source data. If not NULL,
+#' the function will convert only the year(s) specified, but return all years in source data (which
+#' can be confusing; therefore, it is recommended to include in db only the year(s) to be converted.)
 #' @param rake Whether raking is required (default) or not. Default = TRUE.
 #' While the \code{\link{dbRake}} function requires InputData and CtrlPopTotals (either already
 #' in the environment or to be read in from an "inputs" folder), `dbConvert` will create these
@@ -208,16 +210,30 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
   ## PREP ----
 
   ## 1. Read in `FromDB`, the input/source database with population counts that needs to be converted
-  temp <- stringr::str_sub(db, start = 4, end = -3)  ## remove "POP" from beginning and YY from end
-  temp <- stringr::str_sub(temp, start = -1)         ## database type (E = estimates, P = projections)
-  if(temp == "E") {
-    db_path <- paste0(dbPaths$est_path, db, ".csv")  ## e.g., I:/PopulationR/Database/Estimates/POPRREYY.csv
-  } else if(temp == "P") {
-    db_path <- paste0(dbPaths$proj_path, db, ".csv") ## e.g., I:/PopulationR/Database/Projections/POPRRPYY.csv
+  if("character" %in% class(db)) {
+    if(stringr::str_starts(tolower(db), "pop")) {
+      temp <- stringr::str_sub(db, start = 4, end = -3)  ## remove "POP" from beginning and YY from end
+      temp <- stringr::str_sub(temp, start = -1)         ## database type (E = estimates, P = projections)
+      if(temp == "E") {
+        db_path <- paste0(dbPaths$est_path, db, ".csv")  ## e.g., I:/PopulationR/Database/Estimates/POPRREYY.csv
+      } else if(temp == "P") {
+        db_path <- paste0(dbPaths$proj_path, db, ".csv") ## e.g., I:/PopulationR/Database/Projections/POPRRPYY.csv
+      } else {
+        db_path <- paste0(dbPaths$pop_path, db, ".csv")  ## e.g., I:/PopulationR/Database/POPRRYY.csv
+      }; rm(temp)
+      FromDB <- dbRead(db_path, full_BC = full_BC)
+    } else {
+      stop(paste0("There is no database named '", db, "' in '.../PopulationR/Database/'."))
+    }
   } else {
-    db_path <- paste0(dbPaths$pop_path, db, ".csv")  ## e.g., I:/PopulationR/Database/POPRRYY.csv
-  }; rm(temp)
-  FromDB <- dbRead(db_path, full_BC = full_BC)
+    ## 'db' is not class character, therefore, likely a database in environment. Use that.
+    if("data.frame" %in% class(db)) {
+      FromDB <- db
+    } else {
+      stop(paste0("'", db, "' is neither a database name, nor a data.frame object."))
+    }
+  }
+
   if(is.null(years)) {
     ## use all years in source data
     years <- unique(FromDB$Year)
@@ -230,8 +246,7 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
     }
   }
   if(class(FromDB$Age) == "character") {
-    FromDB <- FromDB %>% dplyr::mutate(Age = dplyr::case_when(Age == "TOTAL" ~ "-999",
-                                                              TRUE ~ Age))
+    FromDB <- FromDB %>% dplyr::mutate(Age = dplyr::case_when(Age == "TOTAL" ~ "-999", TRUE ~ Age))
   }
   ages <- unique(FromDB$Age)
 
@@ -273,6 +288,7 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
   ## CONVERSION ----
 
   ## 6. Create output file placeholder and full_join conversion info (full to get info from both geogs)
+  if(class(tbl$source) != "character") { tbl <- tbl %>% dplyr::mutate(source = as.character(source)) }
   ToDB <- FromDB %>% dplyr::full_join(tbl, by = c("TypeID" = "source"))
   if(full_BC == TRUE & any(is.na(ToDB$destination))) {
     stop("Some destination geographies are unfound. Check that the correct conversion table is being used.")
@@ -287,10 +303,13 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
     FromDB <- FromDB %>% dplyr::filter(TypeID %in% keepGeogs)
   }
 
-  if(any( sort(unique(tbl$source)) == sort(unique(FromDB$TypeID)) ) != TRUE) {
+  # if(any( sort(unique(tbl$source)) == sort(unique(FromDB$TypeID)) ) != TRUE) {
+  tblSource <- sort(unique(tbl$source)); tblSource <- tblSource[tblSource != 0]
+  FromDBTypeID <- sort(unique(FromDB$TypeID)); FromDBTypeID <- FromDBTypeID[FromDBTypeID != 0]
+  if(any(tblSource == FromDBTypeID) != TRUE) {
     stop(paste0("Error: There is a mismatch in region codes between the source in conversion table ",
                 conv_table, " and the ", db, " db. Conversion will not proceed."))
-  }
+  }; rm(tblSource, FromDBTypeID)
 
   ## 7. Apply proportions to counts and aggregate by destination geography
   ToDB <- ToDB %>%

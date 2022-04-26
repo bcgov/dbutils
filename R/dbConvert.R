@@ -138,8 +138,8 @@ conversionRead <- function(conv_path) {
 #' raking.
 #'
 #' @details
-#' Conversion tables should be in the "I:/ConversionTables/" folder so that they can be found, and
-#' are expected to be .xlsx files with three unnamed columns with the proportional relationship
+#' Conversion tables should be in the ".../ConversionTables/" LAN folder so that they can be found,
+#' and are expected to be .xlsx files with three unnamed columns with the proportional relationship
 #' (aka, "split"), source and destination geographies.
 #'
 #' The conversion process is as follows:
@@ -165,7 +165,7 @@ conversionRead <- function(conv_path) {
 #' @param conv_table Name of conversion table to be read in to provide the proportional
 #' relationship ("split") between source and destination geographies. Conversion table path is
 #' hardcoded to ensure consistency across population systems, and will find conversion table in
-#' "I:/ConversionTables/" folder.
+#' ".../ConversionTables/" folder (on the LAN).
 #' @param years Vector of one or more years to be included in the converted destination data.
 #' Default = NULL. If NULL, the function will convert for all years in the source data.
 #' @param rake Whether raking is required (default) or not. Default = TRUE.
@@ -375,7 +375,9 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
       tidyr::pivot_wider(names_from = "Age", values_from = "value") %>%
       rename.age.grps(VarRegion, VarSex) %>%
       tidyr::pivot_longer(!c(Year, Type, TypeID, Sex), names_to = "Age", values_to = "value") %>%
-      tidyr::pivot_wider(names_from = "Sex", values_from = "value")
+      tidyr::pivot_wider(names_from = "Sex", values_from = "value") %>%
+      ## convert TypeID to character so that it will match class of raked output
+      dplyr::mutate(TypeID = as.character(TypeID))
 
     ## D. format ToDB_rake as needed (get only destinations in tblSplits)
     ##    *** this is where Age becomes character, ageOldest becomes pos, and -999 becomes "TOTAL" ***
@@ -532,3 +534,291 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
   return(ToDB_done)
 
 }
+
+
+#### geogConvert ----
+#' Convert source geography to destination geography, when no age or sex data is available.
+#'
+#' @description
+#' Converts a one-dimensional population database to another geography using a conversion table and,
+#' likely, prorating as needed.
+#'
+#' @details
+#' Conversion tables should be in the ".../ConversionTables/" LAN folder so that they can be found,
+#' and are expected to be .xlsx files with three unnamed columns with the proportional relationship
+#' (aka, "split"), source and destination geographies. This function differs from \code{\link{dbConvert}}
+#' in that there are no age or sex variables in the database. Therefore, raking is not required; only,
+#' prorating will be needed to ensure that the destination geographies total sums to source geographies
+#' total (for each year). This function will likely only be used during Estimates Breakdown System (EBS)
+#' to convert lowest-level geographies from Statistics Canada (Census Sub-divisions, aka "CS" or "CSD")
+#' to the lowest-level geography BC Stats produces (CHSAs, aka "CH").
+#'
+#' The conversion process is as follows:
+#' \enumerate{
+#'  \item Evaluate the conversion table between Geography A (source)and B (destination) for regions
+#'  that require no conversion (i.e., regions are converted 1-to-1 from Geography A to B). Remove
+#'  these regions from the conversion process.
+#'  \item Sequentially share out the data relating to the region in Geography A using the
+#'  conversion factor to the respective region(s) in Geography B.
+#'  \item Aggregate Geography B components that received contributions from multiple regions in
+#'  Geography A.
+#'  \item If not all regions are 1-to-1, "split" destination geographies must conform to source
+#'  totals (aka, "control population totals"), achieved using prorating (subset of steps taken in
+#'  \code{\link{dbRake}}). If Step (1) removed some 1-to-1 regions, the control totals will be
+#'  adjusted downward. Destination control totals (aka, "control region totals") are set as NULL and
+#'  will be generated during the prorating process.
+#'  \item Any 1-to-1 regions removed during Step (1) are added back to Geography B (under the
+#'  Geography B naming convention).
+#' }
+#'
+#' @param db Data variable containing the source database to be converted. Expects data to be in
+#' data.frame with columns: Year, Type, TypeID, Total. (If Age, Male or Female are included, function
+#' will stop and ask for such columns to be dropped or to use \code{\link{dbConvert}} instead.)
+#' If 'readFiles' is set to TRUE, 'db' should be the name of the source database to be read in
+#' (e.g., "POPECS21") or full path to csv file of the source database.
+#' @param TypeTo Two-character geographical code for the type of destination geography.
+#' Default = "CH" for CHSA (Community Health Service Area).
+#' @param conv_table Name of conversion table to be read in to provide the proportional
+#' relationship ("split") between source and destination geographies. Conversion table path is
+#' hardcoded to ensure consistency across population systems, and will find conversion table in
+#' ".../ConversionTables/" folder (on the LAN). This is not necessary if 'conv_path' is set instead.
+#' @param conv_path The full path to the conversion table Excel file. Default = NULL.
+#' If NULL, the function requires that 'conv_table' be set. This is an alternate method to reading in
+#' the conversion table.
+#' @param years Vector of one or more years to be included in the converted destination data.
+#' Default = NULL. If NULL, the function will convert for all years in the source data.
+#' @param allowNegatives Logical value for whether or not negative population values are allowed.
+#' Default = FALSE. Only migration data should be allowed to have negative values.
+#' @param readFiles Logical value for whether or not db file needs to be read in. Default = FALSE.
+#' If FALSE, file is already in environment, likely by being called or created through another
+#' function (e.g., \code{\link{dbRead}}).
+#' @return Database converted from source to destination geography. If not all allocations were 100,
+#' (i.e., some splits < 100), then prorating was also done.
+#' @examples
+#' \dontrun{  geogConvert(db = CSDs_to_convert, conv_table = "Table-CSD-CHSA-2021.xlsx")  }
+#' \dontrun{  geogConvert(db = CSDs_to_convert, conv_path = "I:/ConversionTables/Table-CSD-CHSA-2021.xlsx")  }
+#' @family conversion helpers
+#' @seealso Overall package documentation: \code{\link{dbutils}}()
+#' @export
+geogConvert <- function(db, TypeTo = "CH", conv_table, conv_path = NULL,
+                        years = NULL, allowNegatives = FALSE, readFiles = FALSE) {
+
+  ### * PREP
+
+  ## 1. Read in db csv if readFiles is TRUE, else use db in env
+  if(readFiles == TRUE) {
+    if(length(db) == 1 & nchar(db) == 8) {
+      ## Read in `FromDB`, the input/source database with population counts that needs to be converted
+      temp <- stringr::str_sub(db, start = 4, end = -3)  ## remove "POP" from beginning and YY from end
+      temp <- stringr::str_sub(temp, start = -1)         ## database type (E = estimates, P = projections)
+      if(temp == "E") {
+        db_path <- paste0(dbPaths$est_path, db, ".csv")  ## e.g., I:/PopulationR/Database/Estimates/POPRREYY.csv
+      } else if(temp == "P") {
+        db_path <- paste0(dbPaths$proj_path, db, ".csv") ## e.g., I:/PopulationR/Database/Projections/POPRRPYY.csv
+      } else {
+        db_path <- paste0(dbPaths$pop_path, db, ".csv")  ## e.g., I:/PopulationR/Database/POPRRYY.csv
+      }; rm(temp)
+      FromDB <- dbRead(db_path, full_BC = TRUE)
+    } else if(length(db) == 1) {
+      dbType <- tolower(stringr::str_sub(db, start = 1+ stringr::str_locate(db, "[.]")[, "start"], end = -1))
+      if(dbType == "csv") {  FromDB <- readr::read_csv(db)  } else {  stop("'db' is not csv format.") }
+      rm(dbType)
+    }
+  } else {
+    FromDB <- db
+  }
+  ## CHECK: FromDB should be totals only, NOT broken out by Age or Sex (otherwise, use `dbConvert()` instead)
+  if(any( c("male", "female", "age") %in% tolower(names(FromDB)) )) {
+    stop(paste("There are either age and/or sex columns in the data.",
+               "Either use the full `dbConvert()` function or drop these columns from the data.",
+               "This function converts only total geographical counts (i.e., not age or sex)."))
+  }
+  ## CHECK: FromDB should have Year, Type, TypeID and Total columns
+  if(!all( c("Year", "Type", "TypeID", "Total") %in% names(FromDB))) {
+    stop(paste("One or more columns are missing from (or misnamed in) the db.",
+               "The db should have the following columns: Year, Type, TypeID, Total."))
+  }
+
+  ## 2. Use all years in source data if `years` not set (i.e., if years = NULL)
+  if(is.null(years)) {
+    years <- unique(FromDB$Year)
+  } else if(all(!years %in% unique(FromDB$Year))) {
+    stop("One or more of the years you specified are NOT in the source database 'db'.")
+  }
+
+  ## 3. Read in conversion table
+  if(is.null(conv_path) & !exists("conv_table")) {
+    stop("You must provide either the conversion table name ('conv_table') or path ('conv_path').")
+  } else if(is.null(conv_path) & exists("conv_table")) {
+    ## build conversion table path, if only conv_table provided
+    if(stringr::str_detect(conv_table, ".xlsx")) {
+      conv_path <- paste0(dbPaths$conv_tbl_path, conv_table)
+    } else if(!stringr::str_detect(conv_table, "[.]")) {
+      conv_path <- paste0(dbPaths$conv_tbl_path, conv_table, ".xlsx")
+    } else {
+      stop("The conversion table must be in xlsx format.")
+    }
+  }
+  tbl <- conversionRead(conv_path)
+
+  ## 4. Prep conversion table
+  tbl <- tbl %>%
+    ## convert source and destination to character so joins work
+    dplyr::mutate(source = as.character(source), destination = as.character(destination)) %>%
+    ## drop overall/BC row
+    dplyr::filter(source != 0 & destination != 0)
+
+  ## 5. Determine whether all 1-to-1 or if some sources split across multiple destinations
+  ## some sources go to multiple destinations, and some destinations come from multiple sources
+  temp <- tbl %>% dplyr::group_by(destination) %>% dplyr::summarize(mn = mean(split)) %>%
+    dplyr::filter(mn != 100) %>% dplyr::select(destination) %>% dplyr::mutate(flag = 1)
+  tbl <- tbl %>% dplyr::left_join(temp, by = "destination"); rm(temp)
+  tblSplits <- tbl %>% dplyr::filter(flag == 1)
+
+  if(all(tbl$split == 100)) { split <- FALSE } else {  split <- TRUE  }
+
+
+  ### * CONVERSION
+
+  ## 6. Create output file placeholder and full_join conversion info (full to get info from both geogs)
+  ToDB <- FromDB %>% dplyr::full_join(tbl, by = c("TypeID" = "source"))
+  if(any(is.na(ToDB$destination))) {
+    stop("Some destination geographies are unfound. Check that the correct conversion table is being used.")
+  }
+
+  ## 7. Apply proportions to counts and aggregate by destination geography
+  ## NOTE: converting source to destination will only be done on Total pop as we don't have pop by age or sex
+  ToDB <- ToDB %>%
+    ## multiply by split to allocate proportionally
+    dplyr::mutate(Total = Total * split/100) %>%
+    ## drop no-longer-needed vars (FromDB Type & TypeID)
+    dplyr::select(Year, Total, destination, flag) %>%  # dplyr::select(-split, -Type, -TypeID) %>%
+    dplyr::group_by(Year, destination) %>%
+    ## aggregate splits by ToDB TypeID (destination), and round values (b/c may be multiplying by percentages)
+    dplyr::summarize(Total = rounded(sum(Total)), .groups = "drop") %>%  # dplyr::ungroup() %>%  ## .groups = "drop" in summarize does this
+    ## set ToDB's Type
+    dplyr::mutate(Type = TypeTo) %>%
+    dplyr::select(Year, Type, TypeID = destination, Total) %>%
+    dplyr::arrange(Year, TypeID)
+
+
+  ### * PRORATING (not RAKING, b/c only 1 dimension)
+  ## We have only 1 dimension (geog). Raking requires 2 dimensions. I think we need to:
+  ##   1. temporarily remove 1-to-1 geogs
+  ##   2. prorate the remaining geogs to sum to (BC total minus the 1-to-1 geogs) i.e., Part 1 ONLY of dbRake
+  ##   3. bring back the 1-to-1 geogs
+
+
+  ## 8. if splits exist, need to prorate data; else, process is done
+  if(split == TRUE) {
+
+    ## 8A. hold apart (remove) 1-to-1 regions from process for now (will put back at end)
+    hold_1to1s <- ToDB %>% dplyr::filter(!(TypeID %in% unique(tblSplits$destination)))
+
+    ## 8B. create and format ToDB_wkg as needed (get only destinations in tblSplits)
+    ToDB_wkg <- ToDB %>% dplyr::filter(TypeID %in% unique(tblSplits$destination))
+
+    ## 8C. get control_totals (source regions, only sources in tblSplits (remove 1to1s), sum pop across regions)
+    FromCtrls <- FromDB %>%
+      dplyr::filter(TypeID %in% unique(tblSplits$source)) %>%
+      dplyr::group_by(Year) %>%
+      dplyr::summarize(Total = sum(Total))
+
+    ## 8D. iterate over years
+    worked_all <- vector(mode = "list", length = length(years))
+    for(yr in seq_along(years)) {
+      InputData <- ToDB_wkg %>% dplyr::filter(Year == years[yr]) %>% dplyr::select(-Year)
+      control_totals <- FromCtrls %>% dplyr::filter(Year == years[yr]) %>% dplyr::select(-Year)
+      message(paste0("Prorating Year ", years[yr]))
+
+      ## ~ dbRake Part 1.1: prorate rows
+      n_colGrps <- dim(InputData)[1]
+
+      data <- InputData %>%
+        ## pivot TypeID to cols
+        dplyr::select(TypeID, Total) %>% tidyr::pivot_wider(names_from = "TypeID", values_from = "Total") %>%
+        ## calc Sum of cols
+        dplyr::mutate(Sum = rowSums(.[ , ])) %>%
+        ## add in VarRow Control Totals, rename as Ctrl_TOTAL
+        dplyr::mutate(Ctrl_TOTAL = control_totals$Total) %>%
+        ## calc difference between Sum and Ctrl_TOTAL, and adjusted value
+        dplyr::mutate(Diff = Ctrl_TOTAL - Sum,
+                      adj_value = Diff / n_colGrps)
+
+      ## 1E. reconcile row by row (i.e., for 1:n_Sex, prorate so region totals sum to region control totals)
+      ## Step 3: add/subtract adjustment value to/from actual data to get first interim value
+      ## Step 4: repeat Steps 1 through 3 while difference is not zero
+      CurrRow <- data %>%
+        ## add in nonsense VarRow column as first column so prorate.row() works properly
+        dplyr::mutate(VarRow = 1) %>% dplyr::select(VarRow, tidyselect::everything())
+      ## WHILE difference is NOT zero, adjust actual data
+      while(abs(CurrRow$Diff) > 0.0001) {  CurrRow <- prorate.row(CurrRow, n_colGrps, allowNegatives)  }
+
+      ## ensure all numbers are integers (i.e., no fractional people allowed)
+      CurrRow[, 2:(n_colGrps + 1)] <- real.to.int(realNums = CurrRow[, 2:(n_colGrps + 1)])
+
+      ## replace actual data with adjusted data in CurrRow, drop no longer needed columns
+      data <- CurrRow %>% dplyr::select(-VarRow, -Sum, -Ctrl_TOTAL, -Diff, -adj_value)
+
+      ## 1F. remove no-longer-needed objects
+      rm(CurrRow)
+
+      worked_all[[yr]] <- data
+      rm(InputData, control_totals, n_colGrps, data)
+    }
+
+    ## 8E. add back Year, merge all Years of now-worked data
+    ToDB_done <- purrr::map(.x = 1:length(years), ~ dplyr::mutate(worked_all[[.]], Year = years[.x]))
+    ToDB_done <- purrr::map_dfr(.x = 1:length(years), ~ dplyr::bind_rows(ToDB_done[[.]])) %>%
+      dplyr::select(Year, tidyselect::everything())
+
+    ## 8F. flip worked data
+    ToDB_done <- ToDB_done %>%
+      tidyr::pivot_longer(!Year, names_to = "TypeID", values_to = "Total") %>%
+      dplyr::mutate(Type = {{TypeTo}}) %>%
+      dplyr::select(Year, Type, tidyselect::everything())
+
+    ## 8G. put back any held out 1-to-1 regions removed earlier (steps 8A-8C)
+    if(dim(hold_1to1s)[1] > 0) {  ToDB_done <- ToDB_done %>% dplyr::bind_rows(hold_1to1s)  }
+    rm(hold_1to1s)
+
+  } else {
+    ToDB_done <- ToDB
+  }
+
+  ## 9. sort by Year, then TypeID
+  ToDB_done <- ToDB_done %>% dplyr::arrange(Year, TypeID)
+
+
+  #### OUTPUT ----
+  ## 10. Get regions
+  rgsFrom <- paste0(sort(unique(FromDB$TypeID)), collapse = ", ")
+  rgsTo <- paste0(sort(unique(ToDB$TypeID)), collapse = ", ")
+
+  ## 11. Check that each year's destination total equals the source total
+  temp <- FromDB %>% dplyr::group_by(Year) %>% dplyr::summarize(TotalSource = sum(Total)) %>%
+    dplyr::left_join(ToDB_done %>% dplyr::group_by(Year) %>% dplyr::summarize(Total = sum(Total)), by = "Year") %>%
+    dplyr::mutate(check = Total - TotalSource)
+  if(any(temp$check != 0)) {
+    wkd <- temp %>% dplyr::filter(check != 0) %>% dplyr::pull(Year) %>% paste0(collapse = ", ")
+    wkd <- paste0("The total of destination geographies did NOT convert to the same total as ",
+                  "source geographies for the following Year(s): ", wkd, ". Check this.")
+  } else {
+    if(split == TRUE) {  split <- " "  } else {  split <- " NOT "  }
+    wkd <- paste0("Splits (non 1-to-1 links) were", split, "detected, so prorating was", split, "done. ",
+                  "The total of destination geographies converted to the same total as ",
+                  "source geographies for all Year(s).")
+    rm(ToDB_wkg, FromCtrls, tbl, tblSplits, split, TypeTo, worked_all,
+       ToDB, FromDB, conv_path, temp, yr)
+  }
+
+  ## 12. Let user know what was done and return converted data.
+  message(paste0("Conversion is done. ", wkd))
+  message(paste0("Years are ", paste0(sort(years), collapse = ", "), ". "))
+  message(paste0("Regions FROM are ", rgsFrom, ". "))
+  message(paste0("Regions TO are ", rgsTo, ". "))
+  rm(rgsFrom, rgsTo, wkd, years)
+
+  return(ToDB_done)
+}
+

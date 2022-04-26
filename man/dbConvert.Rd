@@ -23,7 +23,9 @@ hardcoded to ensure consistency across population systems, and will find convers
 ".../ConversionTables/" folder (on the LAN).}
 
 \item{years}{Vector of one or more years to be included in the converted destination data.
-Default = NULL. If NULL, the function will convert for all years in the source data.}
+Default = NULL. If NULL, the function will convert for all years in the source data. If not NULL,
+the function will convert only the year(s) specified, but return all years in source data (which
+can be confusing; therefore, it is recommended to include in db only the year(s) to be converted.)}
 
 \item{rake}{Whether raking is required (default) or not. Default = TRUE.
 While the \code{\link{dbRake}} function requires InputData and CtrlPopTotals (either already

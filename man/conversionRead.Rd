@@ -52,6 +52,7 @@ Overall package documentation: \code{\link{dbutils}}()
 
 Other conversion helpers: 
 \code{\link{conversionTables}()},
-\code{\link{dbConvert}()}
+\code{\link{dbConvert}()},
+\code{\link{geogConvert}()}
 }
 \concept{conversion helpers}

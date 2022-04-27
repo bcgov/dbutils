@@ -374,7 +374,6 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
         dplyr::mutate(Grps = ageGrps5Yr) %>%
         dplyr::bind_rows(agesTemp) %>%
         tibble::add_row(Ends = -999, Grps = "Total") %>%
-        #tibble::add_row(Ends = -100, Grps = "100") %>%
         tibble::add_row(Ends = ageOldest, Grps = as.character(abs(ageOldest))) %>%
         dplyr::arrange(dplyr::desc(Ends)) %>%
         dplyr::mutate(order = 200 + dplyr::row_number(),
@@ -475,7 +474,7 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
       ToDB_done <- ToDB_done %>% dplyr::bind_rows(hold_1to1s)
     }
 
-    ## H. add any missing age groups to ToDB_done (most likely age -90, meaning 90+)
+    ## H. add any missing age groups (other than ageOldest) to ToDB_done (most likely age -90, meaning 90+)
     if(length(ageGrps) != 0) {
       ageNeed <- unique(FromDB$Age)
       temp <- ageNeed[ageNeed < 0]

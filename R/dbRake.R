@@ -63,7 +63,7 @@ rounded <- function(x) { trunc(x + 0.5) }
 rename.age.grps <- function(data, VarRegion, VarSex) {
 
   ## prep
-  notAges <- c("Year", "Type", {{VarRegion}}, {{VarSex}}, "TOTAL", "Total", "999", "-999")
+  notAges <- c("Year", "Type", "TypeID", {{VarRegion}}, {{VarSex}}, "TOTAL", "Total", "999", "-999")
   ageLast <- max(as.numeric(names(data)[!names(data) %in% notAges]))
   # ageLast <- names(data)[ncol(data)-1]  ## assumes age are ordered and Total is last column
   othCols <- c(notAges, {{ageLast}})
@@ -82,6 +82,7 @@ rename.age.grps <- function(data, VarRegion, VarSex) {
   for (i in 1:length(AgeGrps5Yr)) {
     AgeGrps5Yr[i] <- paste0((ageEnds[i]-4), "-", ageEnds[i])
   }                      ## AgeGrps5Yr: "0-4" "5-9" "10-14" ... "85-89" "90-94" "95-99"
+  AgeGrps5Yr <- AgeGrps5Yr[AgeGrps5Yr != "NA-NA"]    ## created when there are no 5 year age groups
 
   ## rename {{data}} columns to match AgeGrps5Yr
   colnames(data)[!colnames(data) %in% othCols & colnames(data) %in% negs] <- AgeGrps5Yr

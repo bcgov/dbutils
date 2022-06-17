@@ -699,7 +699,7 @@ allowNegsnoMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps
     data$Diff <- NULL
 
     ## update Sum and Diff rows
-    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- colSums(data[1:n_rowGrps, 2:(n_colGrps+1)])
+    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- as.list(colSums(data[1:n_rowGrps, 2:(n_colGrps+1)]))
     data[data$VarRow == "Diff", 2:(n_colGrps+1)] <- (data[data$VarRow == "Sum", 2:(n_colGrps+1)]
                                                      - data[data$VarRow == "Ctrl_TOTAL", 2:(n_colGrps+1)])   ## RowAdj
 
@@ -708,7 +708,7 @@ allowNegsnoMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps
                                                              - data[data$VarRow == "Diff", 2:(n_colGrps+1)])
 
     ## check that this adjustment makes Diff now all equal 0
-    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- colSums(data[1:n_rowGrps, 2:(n_colGrps+1)])
+    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- as.list(colSums(data[1:n_rowGrps, 2:(n_colGrps+1)]))
     data[data$VarRow == "Diff", 2:(n_colGrps+1)] <- (data[data$VarRow == "Sum", 2:(n_colGrps+1)]
                                                      - data[data$VarRow == "Ctrl_TOTAL", 2:(n_colGrps+1)])
 
@@ -1102,7 +1102,7 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
     data$Diff <- NULL
 
     ## update Sum and Diff rows
-    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- colSums(data[1:n_rowGrps, 2:(n_colGrps+1)])
+    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- as.list(colSums(data[1:n_rowGrps, 2:(n_colGrps+1)]))
     data[data$VarRow == "Diff", 2:(n_colGrps+1)] <- (data[data$VarRow == "Sum", 2:(n_colGrps+1)]
                                                      - data[data$VarRow == "Ctrl_TOTAL", 2:(n_colGrps+1)])   ## RowAdj
 
@@ -1111,7 +1111,7 @@ noNegsneedMargin <- function(CurrRow, CurrRow_value, data, n_colGrps, n_rowGrps,
                                                              - data[data$VarRow == "Diff", 2:(n_colGrps+1)])
 
     ## update Sum and Diff again (all diffs should be 0 now)
-    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- colSums(data[1:n_rowGrps, 2:(n_colGrps+1)])
+    data[data$VarRow == "Sum", 2:(n_colGrps+1)] <- as.list(colSums(data[1:n_rowGrps, 2:(n_colGrps+1)]))
     data[data$VarRow == "Diff", 2:(n_colGrps+1)] <- (data[data$VarRow == "Sum", 2:(n_colGrps+1)]
                                                      - data[data$VarRow == "Ctrl_TOTAL", 2:(n_colGrps+1)])
   }
@@ -2624,7 +2624,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
       rm(temp, data, CurrRow_value, dataCols, rows_order, n_colGrps, n_rowGrps, CurrAgeGrp, AgeSingles)
 
       ## 3T. move to next age in AgeGrps5Yr
-      age <- age + 1
+      #age <- age + 1
 
 
     }  ## end for loop through AgeGrps5Yr

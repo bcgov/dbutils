@@ -223,6 +223,63 @@ prorate.row <- function(CurrRow, n_colGrps, allowNegatives) {
 
 }
 
+#### prorate ----
+#' Adjust data to sum to control totals via prorate.row
+#'
+#' Prorating is for adjusting data to control totals in only 1 dimension. Use dbRake to adjust data in 2 dimensions.
+#'
+#' This function iteratively adjusts each row of data by running \code{\link{prorate.row}} which
+#' first prepares rows by running through \code{\link{calc.cols}} while the row's difference is not zero.
+#' For example, for 1:n_Sex, prorate
+#' so that region totals sum to region control totals. This is a helper function used in \code{\link{dbRake}}.
+#'
+#' @param data a dataframe to prorate (one row per VarRow)
+#' @param control a dataframe of control totals (one row per VarRow)
+#' @param VarRow a character, the name of the variable to prorate on (e.g., when prorating Sex for LHA to region control totals, VarRow = "Region")
+#' @param allowNegatives a logical of whether negative population values are allowed (usually FALSE)
+#' @return original dataframe, that is now prorated by the adjustment values
+#' @family raking helpers
+#' @seealso The overall raking function: \code{\link{dbRake}}()
+#' @note This function not currently integrated into dbRake
+#' @export
+prorate <- function(data, control, VarRow, allowNegatives = FALSE) {
+
+  ## make sure both dataframes have the joining variable renames VarRow for calc.cols
+  names(data)[names(data) == VarRow] <- "VarRow"
+  names(control)[names(control) == VarRow] <- "VarRow"
+
+  ## Step 1: calc actual sum, add in VarRow (i.e., Region) control totals, calc difference
+  ## Step 2: calc adjustment value (difference divided by number of groups)
+  n_colGrps <- ncol(data) - 1
+  n_rows <- nrow(data)
+  data <- calc.cols(data = data, control, VarRow, n_colGrps)
+  ## this has columns: VarRow, all non-Total Sexes, Sum, Ctrl_TOTAL, Diff, adj_value for all regions
+
+  ## 1E. reconcile row by row (i.e., for 1:n_Sex, prorate so region totals sum to region control totals)
+  for (i in 1:n_rows) {
+
+    ## Step 3: add/subtract adjustment value to/from actual data to get first interim value
+    ## Step 4: repeat Steps 1 through 3 while difference is not zero
+    CurrRow <- data[i, ]
+
+    ## WHILE difference is NOT zero, adjust actual data
+    while(abs(CurrRow$Diff) > 0.0000000001) {
+      CurrRow <- prorate.row(CurrRow, n_colGrps, allowNegatives)
+    }
+
+    ## ensure all numbers are integers (i.e., no fractional people allowed)
+    CurrRow[, 2:(n_colGrps + 1)] <- real.to.int(realNums = CurrRow[, 2:(n_colGrps + 1)])
+
+    ## replace actual data with adjusted data in CurrRow
+    data[i, ] <- CurrRow
+
+  }
+
+  names(data)[names(data) == "VarRow"] <- VarRow
+  data
+
+}
+
 
 #### prep.prorate.col ----
 #' Calculate necessary rows

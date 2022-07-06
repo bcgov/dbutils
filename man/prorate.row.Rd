@@ -36,6 +36,7 @@ Other raking helpers:
 \code{\link{noNegsnoMargin}()},
 \code{\link{prep.prorate.col}()},
 \code{\link{prorate.col}()},
+\code{\link{prorate}()},
 \code{\link{read.inputs}()},
 \code{\link{real.to.int}()},
 \code{\link{rename.age.grps}()},

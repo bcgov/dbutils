@@ -27,6 +27,7 @@ Other raking helpers:
 \code{\link{prep.prorate.col}()},
 \code{\link{prorate.col}()},
 \code{\link{prorate.row}()},
+\code{\link{prorate}()},
 \code{\link{real.to.int}()},
 \code{\link{rename.age.grps}()},
 \code{\link{rounded}()}

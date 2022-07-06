@@ -613,8 +613,10 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
 #' @return Database converted from source to destination geography. If not all allocations were 100,
 #' (i.e., some splits < 100), then prorating was also done.
 #' @examples
-#' \dontrun{  geogConvert(db = CSDs_to_convert, conv_table = "Table-CSD-CHSA-2021.xlsx")  }
-#' \dontrun{  geogConvert(db = CSDs_to_convert, conv_path = "I:/ConversionTables/Table-CSD-CHSA-2021.xlsx")  }
+#' \dontrun{  geogConvert(db = CSDs_to_convert,
+#' conv_table = "Table-CSD-CHSA-2021.xlsx")  }
+#' \dontrun{  geogConvert(db = CSDs_to_convert,
+#'  conv_path = "I:/ConversionTables/Table-CSD-CHSA-2021.xlsx")  }
 #' @family conversion helpers
 #' @seealso Overall package documentation: \code{\link{dbutils}}()
 #' @export

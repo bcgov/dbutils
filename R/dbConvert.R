@@ -329,6 +329,7 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
   ## RAKING ----
 
   ## 8. Raking is needed when splits exist, but NOT needed when all are 100
+  ### rake == TRUE & split == TRUE ----
   if(rake == TRUE & split == TRUE) {
 
     ## A. get/set raking arguments
@@ -514,9 +515,26 @@ dbConvert <- function(db, conv_table, years = NULL, rake = TRUE, change_rake_arg
     rkg <- "Raking was also done. "
 
   }
+  ### rake == FALSE & split == TRUE ----
   if(rake == FALSE & split == TRUE) {
+    ageGrps <- ages[stringr::str_detect(ages, "-") & ages != -999]
+    if(length(ageGrps) == 0) {
+      ## find ageOldest when NO ages have a "-" in them
+      ageOldest <- max(as.numeric(ages[ages != "TOTAL" & ages != 999 & ages != "999"]))
+    } else {
+      ageOldest <- ageGrps[ageGrps == min(ageGrps)]
+    }
+    ##    *** this is where Age becomes character, ageOldest becomes pos, and -999 becomes "TOTAL" ***
+    ToDB_done <- ToDB %>%
+      dplyr::mutate(Age = dplyr::case_when(Age == -999 ~ 999,
+                                           Age == ageOldest ~ abs(as.numeric(Age)),
+                                           TRUE ~ as.numeric(Age))) %>%
+      dplyr::arrange(TypeID, Year, Age) %>%
+      dplyr::mutate(Age = dplyr::case_when(Age == 999 ~ "TOTAL", TRUE ~ as.character(Age)))
+
     rkg <- "Even though not all geographies were 1-to-1, raking was not done, as per your specification. "
   }
+  ### split == FALSE ----
   if(split == FALSE) {
     ageGrps <- ages[stringr::str_detect(ages, "-") & ages != -999]
     if(length(ageGrps) == 0) {

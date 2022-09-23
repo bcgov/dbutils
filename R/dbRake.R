@@ -1578,7 +1578,7 @@ dbRake <- function(InputData, CtrlPopTotals, CtrlRegionTotals = NULL, CtrlAgeGrp
     # sum(data$`1`) - CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 1]   ## likely not zero
     # sum(data$`2`) - CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 2]   ## likely not zero
     ### *************************************************************************************** ###
-    if(sum(data$Sum) != CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]) {
+    if(trunc(sum(data$Sum)) != CtrlPopTotals$TOTAL[CtrlPopTotals$Sex == 3]) {
       stop("Error 1.1 (prorate rows): Region rows should sum to their control total, but they do not.
            Specifically, sum(data$Sum) differs from the overall CtrlPopTotals' TOTAL.")
     } else {

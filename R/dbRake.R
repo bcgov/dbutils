@@ -234,7 +234,7 @@ prorate.row <- function(CurrRow, n_colGrps, allowNegatives) {
 #' so that region totals sum to region control totals. This is a helper function used in \code{\link{dbRake}}.
 #'
 #' @param data a dataframe to prorate (one row per VarRow)
-#' @param control a dataframe of control totals (one row per VarRow)
+#' @param control a dataframe of control totals (one row per VarRow), column names Year, TOTAL
 #' @param VarRow a character, the name of the variable to prorate on (e.g., when prorating Sex for LHA to region control totals, VarRow = "Region")
 #' @param allowNegatives a logical of whether negative population values are allowed (usually FALSE)
 #' @return original dataframe, that is now prorated by the adjustment values
